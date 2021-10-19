@@ -1,4 +1,4 @@
-"""Plik testowy - docstringi są obowiązkowe"""
+"""Test file - docstrings are required"""
 
 import numpy as np
 
