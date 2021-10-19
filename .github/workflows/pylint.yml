@@ -21,5 +21,4 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         pylint `find . -name "*.py"`
-        tee pylint.txt
 
