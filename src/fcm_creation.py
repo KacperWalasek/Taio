@@ -4,8 +4,7 @@ fuzzy cognitive map for given series. Under the hood, genetic
 algorithm is used.
 """
 import numpy as np
-from geneticalgorithm2 import geneticalgorithm2 as ga
-from geneticalgorithm2 import AlgorithmParams
+import pygad
 
 def sigmoid(x):
     """
@@ -44,20 +43,22 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
     Returns
     -------
     function
-        Fitness function ready to be used in genetic algorithm. Its only
+        Fitness function ready to be used in genetic algorithm. Its first
         parameter is a single dimensional numpy.ndarray which contains two
         flattened matrices, the first one with u weights and the second one
         with w weights (FCM). The offset for w weights is equal to
         previous_considered_indices.size * space_dim.
+        The second argument is obligatory, corresponds to solution index
+        and in this case is unused.
 
     """
     w_matrix_offset = previous_considered_indices.size * space_dim
     max_previous_index = previous_considered_indices.max()
-    def fitness_func(trained_array):
+    def fitness_func(solution, _):
         #Gathering and reshaping both weights' matrices from
         #single-dimensional input
-        u_matrix = trained_array[:w_matrix_offset].reshape(-1, space_dim)
-        w_matrix = trained_array[w_matrix_offset:].reshape(-1, space_dim)
+        u_matrix = solution[:w_matrix_offset].reshape(-1, space_dim)
+        w_matrix = solution[w_matrix_offset:].reshape(-1, space_dim)
         #Note that targets for which we calculate predictions are
         #series[max_previous_index:series.shape[0]].
         #For each one we create array containing indices of its' input elements.
@@ -72,9 +73,9 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
         target_matrix = series[max_previous_index:]
         #The last step - error calculation.
         sse = ((y_matrix - target_matrix)**2).sum()
-        return sse
+        #Note that PyGAD maximizes fitness function.
+        return -sse
     return fitness_func
-            
 
 def create_fcm(series, previous_considered_indices):
     """
@@ -101,24 +102,33 @@ def create_fcm(series, previous_considered_indices):
     """
     space_dim = series.shape[1]
     trained_array_size = previous_considered_indices.size * space_dim + space_dim**2
-    trained_array_bounds = np.array([[-1, 1]] * trained_array_size)
     fitness_func = _create_fitness_func(series, previous_considered_indices, space_dim)
-    model = ga(fitness_func, dimension = trained_array_size, 
-                variable_type='real', 
-                 variable_boundaries = trained_array_bounds,
-                 variable_type_mixed = None, 
-                 function_timeout = 10,
-                 #Default parameters. TODO: read about it and adjust it
-                 #https://pypi.org/project/geneticalgorithm2/
-                 algorithm_parameters=AlgorithmParams()
-            )
-    model.run()
+    
+    ga_instance = pygad.GA(
+        #TODO: estimate num_generations in terms of input parameters
+        num_generations=3000,
+        sol_per_pop=100,
+        num_parents_mating=10,
+        
+        num_genes=trained_array_size,
+        gene_space={"low": -1, "high": 1},
+        gene_type=np.float64,
+        
+        fitness_func = fitness_func,
+        mutation_type="random",
+        )
+    ga_instance.run()
+    #ga_instance.plot_fitness()
+    solution, solution_fitness, _ = ga_instance.best_solution()
+    print(f"Best solution fitness: {-solution_fitness}")
+
     w_matrix_offset = previous_considered_indices.size * space_dim
-    return model.output_dict['variable'][w_matrix_offset:].reshape(space_dim, -1)
+   
+    return solution[w_matrix_offset:].reshape(space_dim, -1)
 
 if __name__ == '__main__':
     series = np.array([0, 0.5, 1] * 100)[:, np.newaxis].repeat(3, axis = 1)
     series[:, 1] = series[:, 1] / 3
     series[:, 2] = ((series[:, 2] + 0.5) % 1)**2
-    previous_considered_indices = np.r_[1:11]
+    previous_considered_indices = np.r_[1:7]
     test = create_fcm(series, previous_considered_indices)
