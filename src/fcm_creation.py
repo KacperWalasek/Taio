@@ -30,7 +30,7 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
     series : numpy.ndarray
         Series for which we want to create FCM. Important note: the series
         must be normalized to [0, 1] interval (all coordinates must
-        belong to it).
+        belong to it). The argument must be two dimensional.
     previous_considered_indices : numpy.ndarray
         Array containing indices of previous elements which will be
         FCM's input for predicting the next one. For example, if you want
@@ -77,6 +77,28 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
             
 
 def create_fcm(series, previous_considered_indices):
+    """
+    Creates fcm for given multi dimensional series.
+
+    Parameters
+    ----------
+    series : numpy.ndarray
+        Series for which we want to create FCM. Important note: the series
+        must be normalized to [0, 1] interval (all coordinates must
+        belong to it). The argument must be two dimensional.
+    previous_considered_indices : numpy.ndarray
+        Array containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numpy.array([1, 2, 3]).
+        This argument's entries do not have to be sorted.
+
+    Returns
+    -------
+    numpy.ndarray
+        FCM as two dimensional numpy array.
+
+    """
     space_dim = series.shape[1]
     trained_array_size = previous_considered_indices.size * space_dim + space_dim**2
     trained_array_bounds = np.array([[-1, 1]] * trained_array_size)
@@ -86,24 +108,17 @@ def create_fcm(series, previous_considered_indices):
                  variable_boundaries = trained_array_bounds,
                  variable_type_mixed = None, 
                  function_timeout = 10,
-                 algorithm_parameters=AlgorithmParams(
-                     max_num_iteration = None,
-                     population_size = 100,
-                     mutation_probability = 0.1,
-                     elit_ratio = 0.01,
-                     crossover_probability = 0.5,
-                     parents_portion = 0.3,
-                     crossover_type = 'uniform',
-                     mutation_type = 'uniform_by_center',
-                     selection_type = 'roulette',
-                     max_iteration_without_improv = None
-                     )
-            )
-    model = ga(fitness_func, dimension = trained_array_size, 
-                variable_type='real', 
-                 variable_boundaries = trained_array_bounds,
-                 variable_type_mixed = None, 
-                 function_timeout = 10,
+                 #Default parameters. TODO: read about it and adjust it
+                 #https://pypi.org/project/geneticalgorithm2/
                  algorithm_parameters=AlgorithmParams()
             )
     model.run()
+    w_matrix_offset = previous_considered_indices.size * space_dim
+    return model.output_dict['variable'][w_matrix_offset:].reshape(space_dim, -1)
+
+if __name__ == '__main__':
+    series = np.array([0, 0.5, 1] * 100)[:, np.newaxis].repeat(3, axis = 1)
+    series[:, 1] = series[:, 1] / 3
+    series[:, 2] = ((series[:, 2] + 0.5) % 1)**2
+    previous_considered_indices = np.r_[1:11]
+    test = create_fcm(series, previous_considered_indices)
