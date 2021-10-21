@@ -20,4 +20,4 @@
 
 #             file_name = os.path.join(dir_name, file)
 
-#             data = read_data.read_data(file_name)
+#             data = read_data.process_data(file_name)

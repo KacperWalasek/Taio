@@ -3,7 +3,7 @@ and normalising data"""
 import numpy as np
 
 
-def read_data(file):
+def process_data(file):
     """Read data from file and prepare them for next steps"""
 
     data = np.genfromtxt(file, delimiter=",")
@@ -12,7 +12,7 @@ def read_data(file):
 
     data = normalize(data)
 
-    return data.T
+    return data
 
 
 def delete_redundant_rows(data):
@@ -25,15 +25,18 @@ def delete_redundant_rows(data):
     while i < len(data) and np.array_equal(first, data[i]):
         i = i + 1
 
-    data = np.delete(data, range(i - 1), axis=0)
+    data = data[i - 1 :]
 
     last = data[-1]
-    i = len(data) - 2
+    i = 2
 
-    while i >= 0 and np.array_equal(last, data[i]):
-        i = i - 1
+    while i <= len(data) and np.array_equal(last, data[-i]):
+        i = i + 1
 
-    return np.delete(data, range(len(data) - 1, i + 1, -1), axis=0)
+    if i == 2:
+        return data
+
+    return data[: -(i - 2)]
 
 
 def normalize(data):
