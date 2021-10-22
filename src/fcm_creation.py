@@ -7,9 +7,9 @@ import numpy as np
 import pygad
 
 
-def sigmoid(x):
+def _sigmoid(x):
     """
-    Sigmoid function with parameter 5 compatibile with numpy.ndarray.
+    Sigmoid function with parameter 5 compatible with numpy.ndarray.
     """
     return 1 / (1 + np.exp(-5 * x))
 
@@ -19,7 +19,7 @@ def _g_func(x):
     Internal function used to modify the outputs of first training layer
     (the one with u weights).
     """
-    return sigmoid(x)
+    return _sigmoid(x)
 
 
 def _create_fitness_func(series, previous_considered_indices, space_dim):
@@ -58,25 +58,24 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
     max_previous_index = previous_considered_indices.max()
 
     def fitness_func(solution, _):
-        # Gathering and reshaping both weights' matrices from
-        # single-dimensional input
         u_matrix = solution[:w_matrix_offset].reshape(-1, space_dim)
         w_matrix = solution[w_matrix_offset:].reshape(-1, space_dim)
         # Note that targets for which we calculate predictions are
         # series[max_previous_index:series.shape[0]].
-        # For each one we create array containing indices of its' input elements.
+        # For every predicion we create an array containing indices
+        # of its' input elements.
         input_indices = (
             np.arange(max_previous_index, series.shape[0])[:, np.newaxis].repeat(
                 previous_considered_indices.size, axis=1
             )
             - previous_considered_indices
         )
-        # Now we compute matrix containing a values for each target.
+        # Now we compute matrix containing a-values for each target.
         # The number of columns is equal to space_dim (each target element
-        # corresponds to single row which contains a values for each coordinate).
+        # corresponds to single row which contains a-value for each coordinate).
         a_matrix = _g_func((series[input_indices] * u_matrix).sum(axis=1))
         # We calculate predicted values for each target...
-        y_matrix = sigmoid(np.matmul(a_matrix, w_matrix.T))
+        y_matrix = _sigmoid(np.matmul(a_matrix, w_matrix.T))
         # and the original ones.
         target_matrix = series[max_previous_index:]
         # The last step - error calculation.
@@ -89,7 +88,7 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
 
 def create_fcm(series, previous_considered_indices):
     """
-    Creates fcm for given multi dimensional series.
+    Creates fcm for given multidimensional series.
 
     Parameters
     ----------
@@ -129,7 +128,7 @@ def create_fcm(series, previous_considered_indices):
     ga_instance.run()
     # ga_instance.plot_fitness()
     solution, solution_fitness, _ = ga_instance.best_solution()
-    print(f"Best solution fitness: {-solution_fitness}")
+    print(f"Best solution fitness (SSE): {-solution_fitness}")
 
     w_matrix_offset = previous_considered_indices.size * space_dim
 
