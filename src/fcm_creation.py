@@ -63,7 +63,7 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
         # Note that targets for which we calculate predictions are
         # series[max_previous_index:series.shape[0]].
         # For every predicion we create an array containing indices
-        # of its' input elements.
+        # of its input elements.
         input_indices = (
             np.arange(max_previous_index, series.shape[0])[:, np.newaxis].repeat(
                 previous_considered_indices.size, axis=1
