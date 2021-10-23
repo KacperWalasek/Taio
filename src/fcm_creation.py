@@ -5,7 +5,7 @@ algorithm is used.
 """
 import numpy as np
 import pygad
-
+import datetime
 
 def _sigmoid(x):
     """
@@ -126,7 +126,9 @@ def create_fcm(series, previous_considered_indices):
         mutation_type="random",
     )
     ga_instance.run()
+    print(datetime.datetime.now())
     # ga_instance.plot_fitness()
+    
     solution, solution_fitness, _ = ga_instance.best_solution()
     print(f"Best solution fitness (SSE): {-solution_fitness}")
 
