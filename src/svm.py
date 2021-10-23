@@ -15,7 +15,7 @@ def create_and_train_svm(model_array, labels, **kwargs):
     Creates SVM algorithm and trains using training_data.
     Returns trained algorithm
     """
-    training_data = np.reshape(model_array, (model_array.shape[0], 9))
+    training_data = model_array.reshape(model_array.shape[0], -1)
     print("Train SVM algorithm...")
     return svm.SVC(**kwargs).fit(training_data, labels)
 
@@ -36,7 +36,7 @@ def classify(svm_algorithm, model_array):
     Predicts class of each element of model_array.
     Returns list of predictions
     """
-    data = np.reshape(model_array, (model_array.shape[0], 9))
+    data = model_array.reshape(model_array.shape[0], -1)
     print("Classify models...")
     return svm_algorithm.predict(data)
 
