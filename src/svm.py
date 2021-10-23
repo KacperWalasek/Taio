@@ -12,7 +12,7 @@ def create_and_train_svm(model_array, labels, **kwargs):
     - label array of the same size as training data
     - named arguments to describe svm (more details in:
         https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html#sklearn.svm.SVC)
-    Creates SVM algorith and trains using training_data.
+    Creates SVM algorithm and trains using training_data.
     Returns trained algorithm
     """
     training_data = np.reshape(model_array, (model_array.shape[0], 9))
@@ -32,8 +32,8 @@ def load_svm(path):
 
 def classify(svm_algorithm, model_array):
     """
-    Takes svm algorithm and model_array of shape  of shape (n_samples,3,3).
-    Predicts class of each element of test_data array.
+    Takes svm algorithm and model_array of shape (n_samples,3,3).
+    Predicts class of each element of model_array.
     Returns list of predictions
     """
     data = np.reshape(model_array, (model_array.shape[0], 9))
