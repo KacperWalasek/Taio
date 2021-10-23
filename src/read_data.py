@@ -90,5 +90,5 @@ def normalize(data):
 
     """
 
-    norm = np.linalg.norm(data)
+    norm = max(np.linalg.norm(data, axis=1))
     return (data / norm + 1) / 2
