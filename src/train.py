@@ -1,10 +1,21 @@
-"""Module for training"""
+"""
+Module for training.
+"""
+
 # import os
 # import read_data
 
 
 # def train(train_dir):
-#     """Train classifier"""
+#     """
+#     Train classifier.
+
+#     Parameters:
+#     ----------
+#     train_dir : string
+#         Path to Train directory which contains directories (named with class numbers)
+#         with CSV time series files.
+#     """
 
 #     i = 0
 

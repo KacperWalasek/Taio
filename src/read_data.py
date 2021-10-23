@@ -1,10 +1,30 @@
-"""Module for reading data from csv file, deleting first and last redundant rows
-and normalising data"""
+"""
+Module for reading data from CSV file,
+deleting first and last redundant rows
+and normalising data.
+"""
+
 import numpy as np
 
 
 def process_data(file):
-    """Read data from file and prepare them for next steps"""
+    """
+    Read data from CSV file and prepare them for next steps.
+    Preparation consists of deleting redundant rows from beginning
+    and end of file and normalising data to [0, 1] interval.
+
+    Parameters:
+    ----------
+    file : string
+        Path to CSV file which has data that are supposed to be processed.
+
+    Returns:
+    -------
+    numpy.ndarray
+        Two dimensional numpy array where each row from
+        file is a one dimensional array.
+
+    """
 
     data = np.genfromtxt(file, delimiter=",")
 
@@ -16,9 +36,23 @@ def process_data(file):
 
 
 def delete_redundant_rows(data):
-    """Delete redundant rows - deletes first n-1 rows when first n rows are the same
-    (last rows analogously)"""
+    """
+    Delete first n-1 rows when first n rows are the same
+    (last rows analogously).
 
+    Parameters:
+    ----------
+    data : numpy.ndarray
+        Two dimensional numpy array which will be processed.
+
+    Returns:
+    -------
+    numpy.ndarray
+        Two dimensional numpy array.
+
+    """
+
+    # first rows
     first = data[0]
     i = 1
 
@@ -27,6 +61,7 @@ def delete_redundant_rows(data):
 
     data = data[i - 1 :]
 
+    # last rows
     last = data[-1]
     i = 2
 
@@ -40,7 +75,20 @@ def delete_redundant_rows(data):
 
 
 def normalize(data):
-    """Normalize data - all elements together"""
+    """
+    Normalize data (all elements together) to [0, 1] interval.
 
-    norm = np.linalg.norm(data)
-    return data / norm
+    Parameters:
+    ----------
+    data : numpy.ndarray
+        Two dimensional numpy array which will be processed.
+
+    Returns:
+    -------
+    numpy.ndarray
+        Two dimensional numpy array normalized to [0, 1] interval.
+
+    """
+
+    norm = max(np.linalg.norm(data, axis=1))
+    return (data / norm + 1) / 2
