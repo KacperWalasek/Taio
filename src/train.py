@@ -53,12 +53,12 @@ def train(train_dir):
     with Pool() as p:
         fun = functools.partial(_process_class, prev=prev)
         svm_training_data = p.map(fun, classes)
-        svm_training_data = [
-            (number, fcm) for (number, fcms) in svm_training_data for fcm in fcms
-        ]
-        svm_classes, svm_fcms = zip(*svm_training_data)
-        print(svm_classes)
-        print(svm_fcms)
+    svm_training_data = [
+        (number, fcm) for (number, fcms) in svm_training_data for fcm in fcms
+    ]
+    svm_classes, svm_fcms = zip(*svm_training_data)
+    print(svm_classes)
+    print(svm_fcms)
 
 
 if __name__ == "__main__":
