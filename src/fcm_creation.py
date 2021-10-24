@@ -116,7 +116,7 @@ def create_fcm(series, previous_considered_indices):
     ga_instance = pygad.GA(
         # pylint: disable=W0511
         # TODO: estimate num_generations in terms of input parameters
-        num_generations=3000,
+        num_generations=1000,
         sol_per_pop=100,
         num_parents_mating=10,
         num_genes=trained_array_size,
