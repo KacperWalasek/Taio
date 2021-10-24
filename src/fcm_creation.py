@@ -3,9 +3,10 @@ This module contains create_fcm function which should be used to create
 fuzzy cognitive map for given series. Under the hood, genetic
 algorithm is used.
 """
+import datetime
 import numpy as np
 import pygad
-import datetime
+
 
 def _sigmoid(x):
     """
@@ -128,7 +129,7 @@ def create_fcm(series, previous_considered_indices):
     ga_instance.run()
     print(datetime.datetime.now())
     # ga_instance.plot_fitness()
-    
+
     solution, solution_fitness, _ = ga_instance.best_solution()
     print(f"Best solution fitness (SSE): {-solution_fitness}")
 
