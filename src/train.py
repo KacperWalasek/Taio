@@ -19,19 +19,20 @@ def train(train_dir):
         Path to Train directory which contains directories (named with class numbers)
         with CSV time series files.
     """
-    prev = [1, 2, 3, 4]
+    prev = np.r_[1, 2, 3, 4]
 
-    i = 0
     classes = []
     print(datetime.datetime.now())
 
-    for dir_name, _, files in os.walk(train_dir):
-        if i == 0:
-            i = i + 1
-            continue
-
+    for class_dir in (entry for entry in os.scandir(train_dir) if entry.is_dir()):
         classes.append(
-            {"class_number": int(dir_name[-1]), "dir": dir_name, "files": files}
+            {
+                "class_number": int(class_dir.name),
+                "dir": class_dir.path,
+                "files": [
+                    file for file in os.listdir(class_dir.path) if file.endswith(".csv")
+                ],
+            }
         )
 
     for i in range(len(classes[0]["files"])):
@@ -39,11 +40,10 @@ def train(train_dir):
             if len(cls["files"]) <= i:
                 continue
             file_name = os.path.join(cls["dir"], cls["files"][i])
-
             series = read_data.process_data(file_name)
             print("class", cls["class_number"])
-            fcm_creation.create_fcm(series, np.array(prev))
+            fcm_creation.create_fcm(series, prev)
 
 
 if __name__ == "__main__":
-    train("src/UWaveGestureLibrary_Preprocessed/Train")
+    train(os.path.join("src", "UWaveGestureLibrary_Preprocessed", "Train"))
