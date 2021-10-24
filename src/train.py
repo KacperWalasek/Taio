@@ -62,4 +62,4 @@ def train(train_dir):
 
 
 if __name__ == "__main__":
-    train(os.path.join("..", "UWaveGestureLibrary_Preprocessed", "Train"))
+    train(os.path.join("UWaveGestureLibrary_Preprocessed", "Train"))
