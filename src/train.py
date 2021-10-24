@@ -1,12 +1,27 @@
 """
 Module for training.
 """
-
 import os
 import datetime
+import functools
+from multiprocessing import Pool
 import numpy as np
 import read_data
 import fcm_creation
+
+
+def _process_single_file(file, class_info, prev):
+    file_path = os.path.join(class_info["dir"], file)
+    series = read_data.process_data(file_path)
+    fcm = fcm_creation.create_fcm(series, prev)
+    print(f"Processing {file} from class {class_info['number']} ended\n")
+    return fcm
+
+
+def _process_class(class_info, prev):
+    fun = functools.partial(_process_single_file, class_info=class_info, prev=prev)
+    #Na razie jest :5 poniżej do debugowania tylko
+    return class_info["number"], list(map(fun, class_info["files"][:5]))
 
 
 def train(train_dir):
@@ -27,7 +42,7 @@ def train(train_dir):
     for class_dir in (entry for entry in os.scandir(train_dir) if entry.is_dir()):
         classes.append(
             {
-                "class_number": int(class_dir.name),
+                "number": int(class_dir.name),
                 "dir": class_dir.path,
                 "files": [
                     file for file in os.listdir(class_dir.path) if file.endswith(".csv")
@@ -35,16 +50,16 @@ def train(train_dir):
             }
         )
 
-    for i in range(len(classes[0]["files"])):
-        for cls in classes:
-            if len(cls["files"]) <= i:
-                continue
-            file_name = os.path.join(cls["dir"], cls["files"][i])
-            series = read_data.process_data(file_name)
-            print("class", cls["class_number"])
-            print("shape of current series", series.shape)
-            fcm_creation.create_fcm(series, prev)
+    with Pool() as p:
+        fun = functools.partial(_process_class, prev=prev)
+        svm_training_data = p.map(fun, classes)
+        svm_training_data = [
+            (number, fcm) for (number, fcms) in svm_training_data for fcm in fcms
+        ]
+        svm_classes, svm_fcms = zip(*svm_training_data)
+        print(svm_classes)
+        print(svm_fcms)
 
 
 if __name__ == "__main__":
-    train(os.path.join("src", "UWaveGestureLibrary_Preprocessed", "Train"))
+    train(os.path.join("..", "UWaveGestureLibrary_Preprocessed", "Train"))
