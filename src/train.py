@@ -42,6 +42,7 @@ def train(train_dir):
             file_name = os.path.join(cls["dir"], cls["files"][i])
             series = read_data.process_data(file_name)
             print("class", cls["class_number"])
+            print("shape of current series", series.shape)
             fcm_creation.create_fcm(series, prev)
 
 
