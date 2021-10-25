@@ -1,39 +1,50 @@
 """
-Module for testing.
+This module contains train and test functions
+which should be used to train classifier and test it.
 """
 import os
-import datetime
 import functools
 from multiprocessing import Pool
-import sys
 import numpy as np
 import read_data
 import fcm_creation
 import svm
 
 
-def _process_file(file_info, prev):
+def _process_file(file_info, length, prev):
     file_path = file_info["path"]
-    series = read_data.process_data(file_path)
+    series = read_data.process_data(file_path, length)
     fcm = fcm_creation.create_fcm(series, prev)
-    # print(f"Processing {file_info['name']} from class {file_info['class']} ended\n")
     return file_info["class"], fcm
 
 
-def create_models(dir_path):
+def _create_models(dir_path, length_percent, previous_considered_indices):
     """
-    Creates fcm models out of files in given directory
+    Creates fcm models out of files in given directory.
 
-    Parameters:
+    Parameters
     ----------
     dir_path : string
         Path to directory which contains directories (named with class numbers)
         with CSV time series files.
+    length_percent : number
+        Percent of rows of time series which should be taken into consideration.
+    previous_considered_indices : list
+        List containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numbers: 1, 2, 3.
+        This argument's entries do not have to be sorted.
+
+    Returns
+    -------
+    iterator of tuples
+        Iterator of tuples containing class name and FCM model.
+
     """
-    prev = np.r_[1, 2, 3, 4]
+    prev = np.array(previous_considered_indices)
 
     file_infos = []
-    print(datetime.datetime.now())
 
     for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
         for file in os.scandir(class_dir.path):
@@ -43,60 +54,81 @@ def create_models(dir_path):
                 )
 
     with Pool() as p:
-        fun = functools.partial(_process_file, prev=prev)
+        fun = functools.partial(_process_file, length=length_percent, prev=prev)
         svm_training_data = p.map(fun, file_infos)
     return zip(*svm_training_data)
 
 
-def train(dir_path):
+def train(dir_path, length_percent, previous_considered_indices):
     """
-
+    Trains svm classifier.
 
     Parameters
     ----------
-    dir_path : TYPE
-        DESCRIPTION.
+    dir_path : string
+        Path to directory which contains directories (named with class numbers)
+        with CSV time series files.
+    length_percent : number
+        Percent of rows of time series which should be taken into consideration.
+    previous_considered_indices : list
+        List containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numbers: 1, 2, 3.
+        This argument's entries do not have to be sorted.
 
     Returns
     -------
     None.
 
     """
-    classes, fcms = create_models(dir_path)
+    print("Train")
+    print("Create FCM models...")
+    classes, fcms = _create_models(
+        dir_path, length_percent, previous_considered_indices
+    )
+    print("Train SVM algorithm...")
     svm.save_svm(
         svm.create_and_train_svm(np.array(fcms), np.array(classes), kernel="rbf"),
         "./svmFile.joblib",
     )
 
 
-def test(dir_path):
+def test(dir_path, length_percent, previous_considered_indices):
     """
-
+    Tests svm classifier.
 
     Parameters
     ----------
-    dir_path : TYPE
-        DESCRIPTION.
+    dir_path : string
+        Path to directory which contains directories (named with class numbers)
+        with CSV time series files.
+    length_percent : number
+        Percent of rows of time series which should be taken into consideration.
+    previous_considered_indices : list
+        List containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numbers: 1, 2, 3.
+        This argument's entries do not have to be sorted.
 
     Returns
     -------
-    None.
+    number
+        Classification result.
 
     """
-    classes, fcms = create_models(dir_path)
+    print("Test")
+    print("Create FCM models...")
+    classes, fcms = _create_models(
+        dir_path, length_percent, previous_considered_indices
+    )
+    print("Classify time series...")
     predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))
     correct_ones = 0
     for predicted_class_number, class_number in zip(predicted_classes, classes):
         if predicted_class_number == class_number:
             correct_ones += 1
-    print("Classification result: ", correct_ones / len(classes))
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2 or (sys.argv[1] != "train" and sys.argv[1] != "test"):
-        print("'train' or 'test' argument is needed")
-    else:
-        if sys.argv[1] == "train":
-            train(os.path.join("UWaveGestureLibrary_Preprocessed", "Train"))
-        else:
-            test(os.path.join("UWaveGestureLibrary_Preprocessed", "Test"))
+    result = correct_ones / len(classes)
+    print("Classification result: ", result)
+    return result

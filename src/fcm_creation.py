@@ -3,7 +3,6 @@ This module contains create_fcm function which should be used to create
 fuzzy cognitive map for given series. Under the hood, genetic
 algorithm is used.
 """
-import datetime
 import numpy as np
 import pygad
 
@@ -61,6 +60,7 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
     def fitness_func(solution, _):
         u_matrix = solution[:w_matrix_offset].reshape(-1, space_dim)
         w_matrix = solution[w_matrix_offset:].reshape(-1, space_dim)
+
         # Note that targets for which we calculate predictions are
         # series[max_previous_index:series.shape[0]].
         # For every predicion we create an array containing indices
@@ -71,16 +71,21 @@ def _create_fitness_func(series, previous_considered_indices, space_dim):
             )
             - previous_considered_indices
         )
+
         # Now we compute matrix containing a-values for each target.
         # The number of columns is equal to space_dim (each target element
         # corresponds to single row which contains a-value for each coordinate).
         a_matrix = _g_func((series[input_indices] * u_matrix).sum(axis=1))
+
         # We calculate predicted values for each target...
         y_matrix = _sigmoid(np.matmul(a_matrix, w_matrix.T))
+
         # and the original ones.
         target_matrix = series[max_previous_index:]
+
         # The last step - error calculation.
         sse = ((y_matrix - target_matrix) ** 2).sum()
+
         # Note that PyGAD maximizes fitness function.
         return -sse
 
@@ -115,9 +120,8 @@ def create_fcm(series, previous_considered_indices):
     fitness_func = _create_fitness_func(series, previous_considered_indices, space_dim)
 
     ga_instance = pygad.GA(
-        # pylint: disable=W0511
         # TODO: estimate num_generations in terms of input parameters
-        num_generations=1000,
+        num_generations=5,
         sol_per_pop=100,
         num_parents_mating=10,
         num_genes=trained_array_size,
@@ -127,8 +131,6 @@ def create_fcm(series, previous_considered_indices):
         mutation_type="random",
     )
     ga_instance.run()
-    print(datetime.datetime.now())
-    # ga_instance.plot_fitness()
 
     solution, solution_fitness, _ = ga_instance.best_solution()
     print(f"Best solution fitness (SSE): {-solution_fitness}")
@@ -136,11 +138,3 @@ def create_fcm(series, previous_considered_indices):
     w_matrix_offset = previous_considered_indices.size * space_dim
 
     return solution[w_matrix_offset:].reshape(space_dim, -1)
-
-
-if __name__ == "__main__":
-    example_series = np.array([0, 0.5, 1] * 100)[:, np.newaxis].repeat(3, axis=1)
-    example_series[:, 1] = example_series[:, 1] / 3
-    example_series[:, 2] = ((example_series[:, 2] + 0.5) % 1) ** 2
-    example_previous_indices = np.r_[1:7]
-    fcm = create_fcm(example_series, example_previous_indices)
