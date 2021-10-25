@@ -26,7 +26,7 @@ def create_models(dir_path):
 
     Parameters:
     ----------
-    dir : string
+    dir_path : string
         Path to directory which contains directories (named with class numbers)
         with CSV time series files.
     """
@@ -54,7 +54,7 @@ def train(dir_path):
 
     Parameters
     ----------
-    dir : TYPE
+    dir_path : TYPE
         DESCRIPTION.
 
     Returns
@@ -75,7 +75,7 @@ def test(dir_path):
 
     Parameters
     ----------
-    dir : TYPE
+    dir_path : TYPE
         DESCRIPTION.
 
     Returns
