@@ -120,6 +120,7 @@ def create_fcm(series, previous_considered_indices):
     fitness_func = _create_fitness_func(series, previous_considered_indices, space_dim)
 
     ga_instance = pygad.GA(
+        # pylint: disable=W0511
         # TODO: estimate num_generations in terms of input parameters
         num_generations=5,
         sol_per_pop=100,
