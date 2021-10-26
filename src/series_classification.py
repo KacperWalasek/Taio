@@ -14,7 +14,10 @@ import svm
 def _process_file(file_info, length_percent, prev):
     file_path = file_info["path"]
     series = read_data.process_data(file_path, length_percent)
-    fcm = fcm_creation.create_fcm(series, prev)
+    # pylint: disable=W0511
+    # TODO:
+    fcm = fcm_creation.create_fcms(series, prev, 4)
+    fcm = None
     return file_info["class"], fcm
 
 
