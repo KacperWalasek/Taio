@@ -74,8 +74,8 @@ def _create_fitness_func(membership_matrix, previous_considered_indices, concept
         )
 
         # Now we compute matrix containing a-values for each target.
-        # The number of columns is equal to space_dim (each target element
-        # corresponds to single row which contains a-value for each coordinate).
+        # The number of columns is equal to concept_count (each target element
+        # corresponds to single row which contains a-value for each concept).
         a_matrix = _g_func((membership_matrix[input_indices] * u_matrix).sum(axis=1))
 
         # We calculate predicted values for each target...
