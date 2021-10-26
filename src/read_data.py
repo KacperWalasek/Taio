@@ -6,7 +6,7 @@ and normalising data.
 import numpy as np
 
 
-def process_data(file, length):
+def process_data(file, length_percent):
     """
     Read data from CSV file and prepare them for next steps.
     Preparation consists of deleting redundant rows from beginning
@@ -16,7 +16,7 @@ def process_data(file, length):
     ----------
     file : string
         Path to CSV file which has data that are supposed to be processed.
-    length : number
+    length_percent : number
         Percent of rows of time series which should be taken into consideration.
 
     Returns
@@ -29,7 +29,7 @@ def process_data(file, length):
 
     data = np.genfromtxt(file, delimiter=",")
 
-    data = data[: int(length * data.shape[0])]
+    data = data[: int(length_percent * data.shape[0])]
 
     data = _delete_redundant_rows(data)
 

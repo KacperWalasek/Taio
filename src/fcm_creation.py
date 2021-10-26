@@ -132,6 +132,7 @@ def create_fcm(series, previous_considered_indices):
         mutation_type="random",
     )
     ga_instance.run()
+    # ga_instance.plot_fitness()
 
     solution, solution_fitness, _ = ga_instance.best_solution()
     print(f"Best solution fitness (SSE): {-solution_fitness}")
@@ -139,3 +140,11 @@ def create_fcm(series, previous_considered_indices):
     w_matrix_offset = previous_considered_indices.size * space_dim
 
     return solution[w_matrix_offset:].reshape(space_dim, -1)
+
+
+if __name__ == "__main__":
+    example_series = np.array([0, 0.5, 1] * 100)[:, np.newaxis].repeat(3, axis=1)
+    example_series[:, 1] = example_series[:, 1] / 3
+    example_series[:, 2] = ((example_series[:, 2] + 0.5) % 1) ** 2
+    example_previous_indices = np.r_[1:7]
+    fcm = create_fcm(example_series, example_previous_indices)

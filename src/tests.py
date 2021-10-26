@@ -10,7 +10,7 @@ class Test:
     Test class.
     """
 
-    def __init__(self, length_percent, *previous_considered_indices):
+    def __init__(self, length_percent, previous_considered_indices):
         self.percent = length_percent
         self.prev = previous_considered_indices
         self.result = 0
@@ -39,7 +39,7 @@ class Test:
 
 if __name__ == "__main__":
     tests = []
-    tests.append(Test(0.8, 1, 2, 4))
+    tests.append(Test(0.8, [1, 2, 4]))
 
     for test in tests:
         test.run()

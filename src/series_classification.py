@@ -11,9 +11,9 @@ import fcm_creation
 import svm
 
 
-def _process_file(file_info, length, prev):
+def _process_file(file_info, length_percent, prev):
     file_path = file_info["path"]
-    series = read_data.process_data(file_path, length)
+    series = read_data.process_data(file_path, length_percent)
     fcm = fcm_creation.create_fcm(series, prev)
     return file_info["class"], fcm
 
@@ -54,7 +54,7 @@ def _create_models(dir_path, length_percent, previous_considered_indices):
                 )
 
     with Pool() as p:
-        fun = functools.partial(_process_file, length=length_percent, prev=prev)
+        fun = functools.partial(_process_file, length_percent=length_percent, prev=prev)
         svm_training_data = p.map(fun, file_infos)
     return zip(*svm_training_data)
 
