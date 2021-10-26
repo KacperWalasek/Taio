@@ -38,8 +38,8 @@ def _create_models(dir_path, length_percent, previous_considered_indices):
 
     Returns
     -------
-    iterator of tuples
-        Iterator of tuples containing class name and FCM model.
+    zip
+        Zip object containing class name and FCM model.
 
     """
     prev = np.array(previous_considered_indices)
