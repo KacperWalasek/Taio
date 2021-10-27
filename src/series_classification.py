@@ -144,6 +144,11 @@ def test(dir_path, length_percent, previous_considered_indices, split):
     print("Classification result: ", result)
     return result
 
-if __name__=="__main__":
-    file_info = {"class": 4, "path": 'UWaveGestureLibrary_Preprocessed/Train/4/740.csv', "name": '740.csv'}
-    _process_file(file_info,.5,np.r_[1, 2],True)
+
+if __name__ == "__main__":
+    file_description = {
+        "class": 4,
+        "path": "UWaveGestureLibrary_Preprocessed/Train/4/740.csv",
+        "name": "740.csv",
+    }
+    _process_file(file_description, 0.5, np.r_[1, 2], True)
