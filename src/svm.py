@@ -13,7 +13,7 @@ def create_and_train_svm(model_array, labels, **kwargs):
     Parameters
     ----------
     model_array : numpy.ndarray
-        Array of model parameters of shape (n_samples, 3, 3).
+        Array of arrays of model parameters of shape (n_samples, num_fcms_per_series, c, c).
     labels : list
         List of class labels of the same size as training data.
     **kwargs
@@ -76,7 +76,7 @@ def classify(svm_algorithm, model_array):
     svm_algorithm : object
         SVM algorithm.
     model_array : numpy.ndarray
-        Array of model parameters of shape (n_samples, 3, 3).
+        Array of arrays of model parameters of shape (n_samples, 1/3, c, c).
 
     Returns
     -------

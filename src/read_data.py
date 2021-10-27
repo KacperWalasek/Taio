@@ -1,7 +1,6 @@
 """
 Module for reading data from CSV file,
-deleting first and last redundant rows
-and normalising data.
+deleting first and last redundant rows.
 """
 import numpy as np
 
@@ -10,7 +9,7 @@ def process_data(file, length_percent):
     """
     Read data from CSV file and prepare them for next steps.
     Preparation consists of deleting redundant rows from beginning
-    and end of file and normalising data to [0, 1] interval.
+    and end of file and transposing resulting ndarray.
 
     Parameters
     ----------
@@ -22,20 +21,18 @@ def process_data(file, length_percent):
     Returns
     -------
     numpy.ndarray
-        Two dimensional numpy array where each row from
+        Two dimensional numpy array where each column from
         file is a one dimensional array.
 
     """
 
     data = np.genfromtxt(file, delimiter=",")
 
-    data = data[: int(length_percent * data.shape[0])]
-
     data = _delete_redundant_rows(data)
 
-    data = _normalize(data)
+    data = data[: int(length_percent * data.shape[0])]
 
-    return data
+    return data.T
 
 
 def _delete_redundant_rows(data):
@@ -75,23 +72,3 @@ def _delete_redundant_rows(data):
         return data
 
     return data[: -(i - 2)]
-
-
-def _normalize(data):
-    """
-    Normalize data (all elements together) to [0, 1] interval.
-
-    Parameters
-    ----------
-    data : numpy.ndarray
-        Two dimensional numpy array which will be processed.
-
-    Returns
-    -------
-    numpy.ndarray
-        Two dimensional numpy array normalized to [0, 1] interval.
-
-    """
-
-    norm = np.linalg.norm(data, axis=1).max()
-    return (data / norm + 1) / 2

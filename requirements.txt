@@ -3,3 +3,4 @@ black
 pylint
 scikit-learn
 pygad==2.16.1
+scikit-fuzzy==0.4.2
