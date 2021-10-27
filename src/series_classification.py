@@ -11,17 +11,14 @@ import fcm_creation
 import svm
 
 
-def _process_file(file_info, length_percent, prev):
+def _process_file(file_info, length_percent, prev, split):
     file_path = file_info["path"]
     series = read_data.process_data(file_path, length_percent)
-    # pylint: disable=W0511
-    # TODO:
-    fcm = fcm_creation.create_fcms(series, prev, 4)
-    fcm = None
-    return file_info["class"], fcm
+    fcms = np.array(fcm_creation.create_fcms(series, prev, 4, split))
+    return file_info["class"], fcms
 
 
-def _create_models(dir_path, length_percent, previous_considered_indices):
+def _create_models(dir_path, length_percent, previous_considered_indices, split):
     """
     Creates fcm models out of files in given directory.
 
@@ -38,6 +35,9 @@ def _create_models(dir_path, length_percent, previous_considered_indices):
         to predict next element using the current one, the previous one and
         before the previous one you can pass numbers: 1, 2, 3.
         This argument's entries do not have to be sorted.
+    split : bool
+        If True, we create FCM for each coordinate of time series.
+        If False, we create one FCM.
 
     Returns
     -------
@@ -57,12 +57,14 @@ def _create_models(dir_path, length_percent, previous_considered_indices):
                 )
 
     with Pool() as p:
-        fun = functools.partial(_process_file, length_percent=length_percent, prev=prev)
+        fun = functools.partial(
+            _process_file, length_percent=length_percent, prev=prev, split=split
+        )
         svm_training_data = p.map(fun, file_infos)
     return zip(*svm_training_data)
 
 
-def train(dir_path, length_percent, previous_considered_indices):
+def train(dir_path, length_percent, previous_considered_indices, split):
     """
     Trains svm classifier.
 
@@ -79,6 +81,9 @@ def train(dir_path, length_percent, previous_considered_indices):
         to predict next element using the current one, the previous one and
         before the previous one you can pass numbers: 1, 2, 3.
         This argument's entries do not have to be sorted.
+    split : bool
+        If True, we create FCM for each coordinate of time series.
+        If False, we create one FCM.
 
     Returns
     -------
@@ -88,7 +93,7 @@ def train(dir_path, length_percent, previous_considered_indices):
     print("Train")
     print("Create FCM models...")
     classes, fcms = _create_models(
-        dir_path, length_percent, previous_considered_indices
+        dir_path, length_percent, previous_considered_indices, split
     )
     print("Train SVM algorithm...")
     svm.save_svm(
@@ -97,7 +102,7 @@ def train(dir_path, length_percent, previous_considered_indices):
     )
 
 
-def test(dir_path, length_percent, previous_considered_indices):
+def test(dir_path, length_percent, previous_considered_indices, split):
     """
     Tests svm classifier.
 
@@ -114,6 +119,9 @@ def test(dir_path, length_percent, previous_considered_indices):
         to predict next element using the current one, the previous one and
         before the previous one you can pass numbers: 1, 2, 3.
         This argument's entries do not have to be sorted.
+    split : bool
+        If True, we create FCM for each coordinate of time series.
+        If False, we create one FCM.
 
     Returns
     -------
@@ -124,7 +132,7 @@ def test(dir_path, length_percent, previous_considered_indices):
     print("Test")
     print("Create FCM models...")
     classes, fcms = _create_models(
-        dir_path, length_percent, previous_considered_indices
+        dir_path, length_percent, previous_considered_indices, split
     )
     print("Classify time series...")
     predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))

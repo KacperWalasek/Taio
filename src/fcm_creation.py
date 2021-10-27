@@ -117,7 +117,7 @@ def _cmeans_wrapper(coordinates, concept_count):
     return fuzz.cmeans(coordinates, concept_count, m, error, maxiter)[1].T
 
 
-def _fuzzify_series(series, concept_count):
+def _fuzzify_series(series, concept_count, split):
     """
     Internal function used to create membership matrix for each coordinate
     of series. The series elements are classified using fuzzy c-means clustering.
@@ -130,11 +130,15 @@ def _fuzzify_series(series, concept_count):
         observations in the series.
     concept_count : int
         Number of concepts (centroids).
+    split : bool
+        If True, we get membership matrices for each coordinate of series.
+        If False, we get one membership matrix for all coordinates together.
 
     Returns
     -------
     list
-        A list containing membership matrices for each coordinate of series.
+        A list containing membership matrices (for each coordinate of series
+        or one for all coordinates together).
         The matrices are of type numpy.ndarray and of shape (N, concept_count).
 
     """
@@ -143,13 +147,16 @@ def _fuzzify_series(series, concept_count):
     combined_coordinates = np.hstack((series, adjacent_differences)).reshape(
         -1, series.shape[1]
     )
-    coordinates_list = np.vsplit(combined_coordinates, series.shape[0])
+    if split:
+        coordinates_list = np.vsplit(combined_coordinates, series.shape[0])
+    else:
+        coordinates_list = [combined_coordinates]
     fun = functools.partial(_cmeans_wrapper, concept_count=concept_count)
     membership_matrices = list(map(fun, coordinates_list))
     return membership_matrices
 
 
-def create_fcms(series, previous_considered_indices, concept_count):
+def create_fcms(series, previous_considered_indices, concept_count, split):
     """
     Creates FCMs for given multidimensional series - one FCM for one coordinate.
 
@@ -165,14 +172,17 @@ def create_fcms(series, previous_considered_indices, concept_count):
         to predict next element using the current one, the previous one and
         before the previous one you can pass numpy.array([1, 2, 3]).
         This argument's entries do not have to be sorted.
+    split : bool
+        If True, we get series.shape[0] number of FCMs.
+        If False, we get one FCM.
 
     Returns
     -------
     list
-        List containing FCMs of type numpy.ndarray.
+        List containing FCMs (or one FCM) of type numpy.ndarray.
 
     """
-    membership_matrices = _fuzzify_series(series, concept_count)
+    membership_matrices = _fuzzify_series(series, concept_count, split)
     trained_array_size = (
         previous_considered_indices.size * concept_count + concept_count ** 2
     )
@@ -210,4 +220,4 @@ if __name__ == "__main__":
     example_series[:, 2] = ((example_series[:, 2] + 0.5) % 1) ** 2
     example_previous_indices = np.r_[1:7]
     example_series = example_series.T
-    fcms = create_fcms(example_series, example_previous_indices, 2)
+    fcms = create_fcms(example_series, example_previous_indices, 2, True)

@@ -10,9 +10,10 @@ class Test:
     Test class.
     """
 
-    def __init__(self, length_percent, previous_considered_indices):
+    def __init__(self, length_percent, previous_considered_indices, split):
         self.percent = length_percent
         self.prev = previous_considered_indices
+        self.split = split
         self.result = 0
 
     def run(self):
@@ -23,11 +24,13 @@ class Test:
             os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
             self.percent,
             self.prev,
+            self.split,
         )
         self.result = series_classification.test(
             os.path.join("UWaveGestureLibrary_Preprocessed", "Test"),
             self.percent,
             self.prev,
+            self.split,
         )
 
     def get_result(self):
@@ -39,7 +42,7 @@ class Test:
 
 if __name__ == "__main__":
     tests = []
-    tests.append(Test(0.8, [1, 2, 4]))
+    tests.append(Test(1, [1, 2], True))
 
     for test in tests:
         test.run()
