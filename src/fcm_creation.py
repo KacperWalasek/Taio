@@ -201,7 +201,7 @@ def create_fcms(series, previous_considered_indices, concept_count, split):
 
         ga_instance = pygad.GA(
             num_generations=5,
-            sol_per_pop=100,
+            sol_per_pop=20,
             num_parents_mating=10,
             num_genes=trained_array_size,
             gene_space={"low": -1, "high": 1},
