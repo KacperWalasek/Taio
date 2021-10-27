@@ -1,6 +1,6 @@
 """
-This module contains create_fcm function which should be used to create
-fuzzy cognitive map for given series. Under the hood, genetic
+This module contains create_fcms function which should be used to create
+fuzzy cognitive map(s) for given series. Under the hood, genetic
 algorithm is used.
 """
 import functools
@@ -41,7 +41,7 @@ def _create_fitness_func(membership_matrix, previous_considered_indices, concept
         This argument's entries do not have to be sorted.
     concept_count : int
         Number of concepts. This argument should be equal
-        to series.shape[1].
+        to membership_matrix.shape[1].
 
     Returns
     -------
@@ -102,7 +102,10 @@ def _cmeans_wrapper(coordinates, concept_count):
     ----------
     coordinates : numpy.ndarray
         An array of shape (space_dim, N) of points to cluster.
-        N is the number of points.
+        N is the number of points, space_dim is the dimension of space
+        to which given points belong.
+    concept_count : int
+        Number of concepts (centroids).
 
     Returns
     -------
@@ -120,14 +123,15 @@ def _cmeans_wrapper(coordinates, concept_count):
 def _fuzzify_series(series, concept_count):
     """
     Internal function used to create membership matrix for each coordinate
-    of series. The series elements are classified using fuzzy c-means clustering.
+    of series. The series elements are clustered using fuzzy c-means clustering.
 
     Parameters
     ----------
     series : numpy.ndarray
         Input series, does not have to be normalized.
         Note that its shape must be (space_dim, N) where N is a number of
-        observations in the series.
+        observations in the series and space_dim is the dimension of space
+        to which given points belong.
     concept_count : int
         Number of concepts (centroids).
 
@@ -156,15 +160,18 @@ def create_fcms(series, previous_considered_indices, concept_count):
     Parameters
     ----------
     series : numpy.ndarray
-        Series for which we want to create FCM. Important note: the series
-        must be normalized to [0, 1] interval (all coordinates must
-        belong to it). The argument must be two dimensional.
+        Input series, does not have to be normalized.
+        Note that its shape must be (space_dim, N) where N is a number of
+        observations in the series and space_dim is the dimension of space
+        to which given points belong.
     previous_considered_indices : numpy.ndarray
         Array containing indices of previous elements which will be
         FCM's input for predicting the next one. For example, if you want
         to predict next element using the current one, the previous one and
         before the previous one you can pass numpy.array([1, 2, 3]).
         This argument's entries do not have to be sorted.
+    concept_count : int
+        Number of concepts (centroids).
 
     Returns
     -------
