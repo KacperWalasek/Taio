@@ -47,15 +47,20 @@ def _create_models(dir_path, length_percent, previous_considered_indices, split)
     """
     prev = np.array(previous_considered_indices)
 
-    file_infos = []
+    class_list = []
+    series_list = []
 
     for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
         for file in os.scandir(class_dir.path):
             if file.name.endswith(".csv"):
-                file_infos.append(
-                    {"class": int(class_dir.name), "path": file.path, "name": file.name}
-                )
+                class_list.append(int(class_dir.name))
+                series_list.append(read_data.process_data(file.path, length_percent))
+    
+    fcm_list = fcm_creation.create_fcms(series_list, prev, 20, split)
 
+    return class_list, fcm_list
+
+    #To niżej chyba do wywalenia
     with Pool() as p:
         fun = functools.partial(
             _process_file, length_percent=length_percent, prev=prev, split=split

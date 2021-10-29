@@ -4,23 +4,23 @@ fuzzy cognitive map(s) for given series. Under the hood, genetic
 algorithm is used.
 """
 import functools
+from itertools import accumulate, starmap
+from sys import platform
 import numpy as np
 import pygad
 import skfuzzy as fuzz
 
+if platform in ["linux", "linux2"]:
+    from ray.util.multiprocessing import Pool
+else:
+    from multiprocessing import Pool
+
 
 def _sigmoid(x):
-    """
-    Sigmoid function with parameter 5 compatible with numpy.ndarray.
-    """
     return 1 / (1 + np.exp(-5 * x))
 
 
 def _g_func(x):
-    """
-    Internal function used to modify the outputs of first training layer
-    (the one with u weights).
-    """
     return _sigmoid(x)
 
 
@@ -109,58 +109,152 @@ def _cmeans_wrapper(coordinates, concept_count):
 
     Returns
     -------
-    numpy.ndarray
-        An array of shape (N, c) in which [i, j]th element is membership
-        function's value of i-th point to j-th concept.
+    tuple
+        The first element of returned tuple is numpy.ndarray containing
+        cluster centers. The second one is a numpy.ndarray of shape (N, c)
+        in which [i, j]th element is membership
+        function's value of i-th point to j-th concept (centroid).
 
     """
     m = 2
     error = 1e-8
     maxiter = 1e8
-    return fuzz.cmeans(coordinates, concept_count, m, error, maxiter)[1].T
-
-
-def _fuzzify_series(series, concept_count, split):
-    """
-    Internal function used to create membership matrix for each coordinate
-    of series. The series elements are clustered using fuzzy c-means clustering.
-
-    Parameters
-    ----------
-    series : numpy.ndarray
-        Input series, does not have to be normalized.
-        Note that its shape must be (space_dim, N) where N is a number of
-        observations in the series and space_dim is the dimension of space
-        to which given points belong.
-    concept_count : int
-        Number of concepts (centroids).
-    split : bool
-        If True, we get membership matrices for each coordinate of series.
-        If False, we get one membership matrix for all coordinates together.
-
-    Returns
-    -------
-    list
-        A list containing membership matrices (for each coordinate of series
-        or one for all coordinates together).
-        The matrices are of type numpy.ndarray and of shape (N, concept_count).
-
-    """
-    adjacent_differences = np.diff(series)
-    series = series[:, 1:]
-    combined_coordinates = np.hstack((series, adjacent_differences)).reshape(
-        -1, series.shape[1]
+    # Zwraca tablicę centroidów i tablicę przynależności do tych centroidów
+    return (
+        fuzz.cmeans(coordinates, concept_count, m, error, maxiter)[0],
+        fuzz.cmeans(coordinates, concept_count, m, error, maxiter)[1].T,
     )
+
+
+def _cmeans_predict_wrapper(coordinates, cluster_centers):
+    m = 2
+    error = 1e-8
+    maxiter = 1e8
+    return fuzz.cmeans_predict(coordinates, cluster_centers, m, error, maxiter)[0].T
+
+
+def _fuzzify_training_series_list(series_list, concept_count, split):
+    combined_coordinates_list = []
+    for series in series_list:
+        adjacent_differences = np.diff(series)
+        series = series[:, 1:]
+        combined_coordinates = np.hstack((series, adjacent_differences)).reshape(
+            -1, series.shape[1]
+        )
+        combined_coordinates_list.append(combined_coordinates)
+    horizontal_combined_coordinates = np.hstack(combined_coordinates_list)
     if split:
-        coordinates_list = np.vsplit(combined_coordinates, series.shape[0])
+        horizontal_coordinates_list = np.vsplit(
+            horizontal_combined_coordinates, horizontal_combined_coordinates.shape[0]
+        )
     else:
-        coordinates_list = [combined_coordinates]
+        horizontal_coordinates_list = [horizontal_combined_coordinates]
+    # W tym momencie horizontal_coordinates_list to lista rzeczy do obrobienia c_meansami
     fun = functools.partial(_cmeans_wrapper, concept_count=concept_count)
-    membership_matrices = list(map(fun, coordinates_list))
-    return membership_matrices
+    cluster_centers_list, membership_matrices = zip(
+        *map(fun, horizontal_coordinates_list)
+    )
+    # membership_matrices_per_series będzie listą o długości len(series_list)
+    # taką, że na indeksie i-tym
+    # będą odpowiadające macierze przynależności dla i-tego szeregu
+    # membership_matrices_per_series[i] jest listą o długości albo 3 albo 1
+    # (zależnie od parametru split) i zawiera numpyowe arraye przynależności
+    membership_matrices_per_series = list(
+        map(
+            list,
+            zip(
+                *map(
+                    functools.partial(
+                        np.vsplit,
+                        indices_or_sections=[
+                            x - 1
+                            for x in accumulate([y.shape[1] for y in series_list[:-1]])
+                        ],
+                    ),
+                    membership_matrices,
+                )
+            ),
+        )
+    )
+    # cluster_centers_list jest lista o długości zależnej od split
+    return cluster_centers_list, membership_matrices_per_series
 
 
-def create_fcms(series, previous_considered_indices, concept_count, split):
+def _fuzzify_test_series_list(series_list, cluster_centers_list, split):
+    combined_coordinates_list = []
+    for series in series_list:
+        adjacent_differences = np.diff(series)
+        series = series[:, 1:]
+        combined_coordinates = np.hstack((series, adjacent_differences)).reshape(
+            -1, series.shape[1]
+        )
+        combined_coordinates_list.append(combined_coordinates)
+    horizontal_combined_coordinates = np.hstack(combined_coordinates_list)
+    if split:
+        horizontal_coordinates_list = np.vsplit(
+            horizontal_combined_coordinates, horizontal_combined_coordinates.shape[0]
+        )
+    else:
+        horizontal_coordinates_list = [horizontal_combined_coordinates]
+    membership_matrices = starmap(
+        _cmeans_predict_wrapper, zip(horizontal_coordinates_list, cluster_centers_list)
+    )
+    membership_matrices_per_series = list(
+        map(
+            list,
+            zip(
+                *map(
+                    functools.partial(
+                        np.vsplit,
+                        indices_or_sections=[
+                            x - 1
+                            for x in accumulate([y.shape[1] for y in series_list[:-1]])
+                        ],
+                    ),
+                    membership_matrices,
+                )
+            ),
+        )
+    )
+    return membership_matrices_per_series
+
+
+def _create_single_series_fcms(
+    membership_matrices, previous_considered_indices, concept_count
+):
+    trained_array_size = (
+        previous_considered_indices.size * concept_count + concept_count ** 2
+    )
+    fcm_list = []
+    for membership_matrix in membership_matrices:
+        fitness_func = _create_fitness_func(
+            membership_matrix, previous_considered_indices, concept_count
+        )
+
+        ga_instance = pygad.GA(
+            num_generations=5,
+            sol_per_pop=20,
+            num_parents_mating=10,
+            num_genes=trained_array_size,
+            gene_space={"low": -1, "high": 1},
+            gene_type=np.float64,
+            fitness_func=fitness_func,
+            mutation_type="random",
+        )
+        ga_instance.run()
+        # ga_instance.plot_fitness()
+
+        solution, solution_fitness, _ = ga_instance.best_solution()
+        print(f"Best solution fitness (SSE): {-solution_fitness}")
+
+        w_matrix_offset = previous_considered_indices.size * concept_count
+        fcm_list.append(solution[w_matrix_offset:].reshape(concept_count, -1))
+    return fcm_list
+
+
+def create_training_fcms(
+    series_list, previous_considered_indices, concept_count, split
+):
     """
     Creates FCMs for given multidimensional series - one FCM for one coordinate.
 
@@ -185,46 +279,61 @@ def create_fcms(series, previous_considered_indices, concept_count, split):
 
     Returns
     -------
-    list
-        List containing FCMs (or one FCM) of type numpy.ndarray.
+    tuple
+        The first element of tuple is a list of 2d numpy.ndarrays which
+        are coordinates of cluster centers. This list can be later
+        used as an argument of create_test_fcms function. If split==False
+        then this list contains only one cluster centers ndarray.
+        The second element of tuple is a list of lists containing FCMs
+        (or one FCM) of type numpy.ndarray. Each element of the outer list
+        corresponds to one series in series_list.
 
     """
-    membership_matrices = _fuzzify_series(series, concept_count, split)
-    trained_array_size = (
-        previous_considered_indices.size * concept_count + concept_count ** 2
+    cluster_centers_list, membership_matrices_list = _fuzzify_training_series_list(
+        series_list, concept_count, split
     )
-    fcm_list = []
-    for matrix in membership_matrices:
-        fitness_func = _create_fitness_func(
-            matrix, previous_considered_indices, concept_count
-        )
+    fun = functools.partial(
+        _create_single_series_fcms,
+        previous_considered_indices=previous_considered_indices,
+        concept_count=concept_count,
+    )
+    with Pool() as p:
+        fcms_list = p.map(fun, membership_matrices_list)
 
-        ga_instance = pygad.GA(
-            num_generations=5,
-            sol_per_pop=20,
-            num_parents_mating=10,
-            num_genes=trained_array_size,
-            gene_space={"low": -1, "high": 1},
-            gene_type=np.float64,
-            fitness_func=fitness_func,
-            mutation_type="random",
-        )
-        ga_instance.run()
-        # ga_instance.plot_fitness()
+    return cluster_centers_list, fcms_list
 
-        solution, solution_fitness, _ = ga_instance.best_solution()
-        print(f"Best solution fitness (SSE): {-solution_fitness}")
 
-        w_matrix_offset = previous_considered_indices.size * concept_count
-        fcm_list.append(solution[w_matrix_offset:].reshape(concept_count, -1))
+def create_test_fcms(
+    series_list, previous_considered_indices, concept_count, split, cluster_centers
+):
+    """
+    TU COS WPISAC
+    """
+    membership_matrices_list = _fuzzify_test_series_list(
+        series_list, cluster_centers, split
+    )
+    fun = functools.partial(
+        _create_single_series_fcms,
+        previous_considered_indices=previous_considered_indices,
+        concept_count=concept_count,
+    )
+    with Pool() as p:
+        fcms_list = p.map(fun, membership_matrices_list)
 
-    return fcm_list
+    return fcms_list
 
 
 if __name__ == "__main__":
-    example_series = np.array([0, 0.5, 1] * 100)[:, np.newaxis].repeat(3, axis=1)
-    example_series[:, 1] = example_series[:, 1] / 3
-    example_series[:, 2] = ((example_series[:, 2] + 0.5) % 1) ** 2
-    example_previous_indices = np.r_[1:7]
-    example_series = example_series.T
-    fcms = create_fcms(example_series, example_previous_indices, 2, True)
+    example_series = np.ones((3, 100))
+    example_series_2 = -2 * np.ones((3, 200))
+    example_previous_indices = np.array([1, 2, 3])
+    cluster_centers_result, fcms_result = create_training_fcms(
+        [example_series, example_series_2], example_previous_indices, 2, True
+    )
+    fcms_test_result = create_test_fcms(
+        [example_series, example_series_2],
+        example_previous_indices,
+        2,
+        True,
+        cluster_centers_result,
+    )
