@@ -3,22 +3,15 @@ This module contains train and test functions
 which should be used to train classifier and test it.
 """
 import os
-import functools
-from multiprocessing import Pool
 import numpy as np
 import read_data
 import fcm_creation
 import svm
 
 
-def _process_file(file_info, length_percent, prev, split):
-    file_path = file_info["path"]
-    series = read_data.process_data(file_path, length_percent)
-    fcms = np.array(fcm_creation.create_fcms(series, prev, 4, split))
-    return file_info["class"], fcms
-
-
-def _create_models(dir_path, length_percent, previous_considered_indices, split):
+def _create_models(
+    dir_path, length_percent, previous_considered_indices, split, cluster_centers
+):
     """
     Creates fcm models out of files in given directory.
 
@@ -38,6 +31,7 @@ def _create_models(dir_path, length_percent, previous_considered_indices, split)
     split : bool
         If True, we create FCM for each coordinate of time series.
         If False, we create one FCM.
+    cluster_centers
 
     Returns
     -------
@@ -55,18 +49,17 @@ def _create_models(dir_path, length_percent, previous_considered_indices, split)
             if file.name.endswith(".csv"):
                 class_list.append(int(class_dir.name))
                 series_list.append(read_data.process_data(file.path, length_percent))
-    
-    fcm_list = fcm_creation.create_fcms(series_list, prev, 20, split)
 
-    return class_list, fcm_list
-
-    #To niżej chyba do wywalenia
-    with Pool() as p:
-        fun = functools.partial(
-            _process_file, length_percent=length_percent, prev=prev, split=split
+    if cluster_centers is None:
+        cluster_centers, fcm_list = fcm_creation.create_training_fcms(
+            series_list, prev, 20, split
         )
-        svm_training_data = p.map(fun, file_infos)
-    return zip(*svm_training_data)
+        return class_list, fcm_list, cluster_centers
+
+    fcm_list = fcm_creation.create_test_fcms(
+        series_list, prev, 20, split, cluster_centers
+    )
+    return class_list, fcm_list, None
 
 
 def train(dir_path, length_percent, previous_considered_indices, split):
@@ -97,8 +90,8 @@ def train(dir_path, length_percent, previous_considered_indices, split):
     """
     print("Train")
     print("Create FCM models...")
-    classes, fcms = _create_models(
-        dir_path, length_percent, previous_considered_indices, split
+    classes, fcms, cluster_centers = _create_models(
+        dir_path, length_percent, previous_considered_indices, split, None
     )
     print("Train SVM algorithm...")
     svm.save_svm(
@@ -106,8 +99,10 @@ def train(dir_path, length_percent, previous_considered_indices, split):
         "./svmFile.joblib",
     )
 
+    return cluster_centers
 
-def test(dir_path, length_percent, previous_considered_indices, split):
+
+def test(dir_path, length_percent, previous_considered_indices, split, cluster_centers):
     """
     Tests svm classifier.
 
@@ -136,8 +131,8 @@ def test(dir_path, length_percent, previous_considered_indices, split):
     """
     print("Test")
     print("Create FCM models...")
-    classes, fcms = _create_models(
-        dir_path, length_percent, previous_considered_indices, split
+    classes, fcms, _ = _create_models(
+        dir_path, length_percent, previous_considered_indices, split, cluster_centers
     )
     print("Classify time series...")
     predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))
@@ -148,12 +143,3 @@ def test(dir_path, length_percent, previous_considered_indices, split):
     result = correct_ones / len(classes)
     print("Classification result: ", result)
     return result
-
-
-if __name__ == "__main__":
-    file_description = {
-        "class": 4,
-        "path": "UWaveGestureLibrary_Preprocessed/Train/4/740.csv",
-        "name": "740.csv",
-    }
-    _process_file(file_description, 0.5, np.r_[1, 2], True)

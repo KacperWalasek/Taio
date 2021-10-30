@@ -20,7 +20,7 @@ class Test:
         """
         Run train and test functions.
         """
-        series_classification.train(
+        cluster_centers = series_classification.train(
             os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
             self.percent,
             self.prev,
@@ -31,6 +31,7 @@ class Test:
             self.percent,
             self.prev,
             self.split,
+            cluster_centers
         )
 
     def get_result(self):

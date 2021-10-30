@@ -119,10 +119,10 @@ def _cmeans_wrapper(coordinates, concept_count):
     m = 2
     error = 1e-8
     maxiter = 1e8
-    # Zwraca tablicę centroidów i tablicę przynależności do tych centroidów
+    ret = fuzz.cmeans(coordinates, concept_count, m, error, maxiter)
     return (
-        fuzz.cmeans(coordinates, concept_count, m, error, maxiter)[0],
-        fuzz.cmeans(coordinates, concept_count, m, error, maxiter)[1].T,
+        ret[0],
+        ret[1].T,
     )
 
 
