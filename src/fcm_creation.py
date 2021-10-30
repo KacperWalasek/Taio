@@ -127,13 +127,53 @@ def _cmeans_wrapper(coordinates, concept_count):
 
 
 def _cmeans_predict_wrapper(coordinates, cluster_centers):
+    """
+    Function which wraps fuzz.cmeans_predict.
+    Read more at https://scikit-fuzzy.github.io/scikit-fuzzy/api/index.html
+
+    Parameters
+    ----------
+    coordinates : numpy.ndarray
+        An array of shape (space_dim, N) of points to cluster.
+        N is the number of points, space_dim is the dimension of space
+        to which given points belong.
+    cluster_centers : numpy.ndarray
+        Cluster centers.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of shape (N, c) in which [i, j]th element is membership
+        function's value of i-th point to j-th concept (centroid).
+
+    """
     m = 2
     error = 1e-8
     maxiter = 1e8
     return fuzz.cmeans_predict(coordinates, cluster_centers, m, error, maxiter)[0].T
 
 
-def _fuzzify_training_series_list(series_list, concept_count, split):
+def _get_coordinates_list(series_list, split):
+    """
+    Get list of coordinates from list of series.
+
+    Parameters
+    ----------
+    series_list : list
+        List of time series (numpy.ndarray).
+        Input series, does not have to be normalized.
+        Note that its shape must be (space_dim, N) where N is a number of
+        observations in the series and space_dim is the dimension of space
+        to which given points belong.
+    split : bool
+        If True, we split coordinates into space_dim parts.
+
+    Returns
+    -------
+    list
+        List of lists of coordinates.
+
+    """
     combined_coordinates_list = []
     for series in series_list:
         adjacent_differences = np.diff(series)
@@ -149,16 +189,42 @@ def _fuzzify_training_series_list(series_list, concept_count, split):
         )
     else:
         horizontal_coordinates_list = [horizontal_combined_coordinates]
-    # W tym momencie horizontal_coordinates_list to lista rzeczy do obrobienia c_meansami
+
+    return horizontal_coordinates_list
+
+
+def _fuzzify_training_series_list(series_list, concept_count, split):
+    """
+    Fuzzifies list of training series.
+
+    Parameters
+    ----------
+    series_list : list
+        List of time series (numpy.ndarray).
+        Input series, does not have to be normalized.
+        Note that its shape must be (space_dim, N) where N is a number of
+        observations in the series and space_dim is the dimension of space
+        to which given points belong.
+    concept_count : int
+        Number of concepts (centroids).
+    split : bool
+        If True, we split coordinates into space_dim parts.
+
+    Returns
+    -------
+    tuple
+        Tuple containing list of cluster centers
+        (if split == True then space_dim elements, else one element)
+        and list of lists of membership matrices (one for each time series).
+
+    """
+    horizontal_coordinates_list = _get_coordinates_list(series_list, split)
+
     fun = functools.partial(_cmeans_wrapper, concept_count=concept_count)
     cluster_centers_list, membership_matrices = zip(
         *map(fun, horizontal_coordinates_list)
     )
-    # membership_matrices_per_series będzie listą o długości len(series_list)
-    # taką, że na indeksie i-tym
-    # będą odpowiadające macierze przynależności dla i-tego szeregu
-    # membership_matrices_per_series[i] jest listą o długości albo 3 albo 1
-    # (zależnie od parametru split) i zawiera numpyowe arraye przynależności
+
     membership_matrices_per_series = list(
         map(
             list,
@@ -176,26 +242,35 @@ def _fuzzify_training_series_list(series_list, concept_count, split):
             ),
         )
     )
-    # cluster_centers_list jest lista o długości zależnej od split
+
     return cluster_centers_list, membership_matrices_per_series
 
 
 def _fuzzify_test_series_list(series_list, cluster_centers_list, split):
-    combined_coordinates_list = []
-    for series in series_list:
-        adjacent_differences = np.diff(series)
-        series = series[:, 1:]
-        combined_coordinates = np.hstack((series, adjacent_differences)).reshape(
-            -1, series.shape[1]
-        )
-        combined_coordinates_list.append(combined_coordinates)
-    horizontal_combined_coordinates = np.hstack(combined_coordinates_list)
-    if split:
-        horizontal_coordinates_list = np.vsplit(
-            horizontal_combined_coordinates, horizontal_combined_coordinates.shape[0]
-        )
-    else:
-        horizontal_coordinates_list = [horizontal_combined_coordinates]
+    """
+    Fuzzifies list of test series.
+
+    Parameters
+    ----------
+    series_list : list
+        List of time series (numpy.ndarray).
+        Input series, does not have to be normalized.
+        Note that its shape must be (space_dim, N) where N is a number of
+        observations in the series and space_dim is the dimension of space
+        to which given points belong.
+    cluster_centers_list : int
+        List of cluster centers.
+    split : bool
+        If True, we split coordinates into space_dim parts.
+
+    Returns
+    -------
+    list
+        List of lists of membership matrices (one for each time series).
+
+    """
+    horizontal_coordinates_list = _get_coordinates_list(series_list, split)
+
     membership_matrices = starmap(
         _cmeans_predict_wrapper, zip(horizontal_coordinates_list, cluster_centers_list)
     )
@@ -222,6 +297,29 @@ def _fuzzify_test_series_list(series_list, cluster_centers_list, split):
 def _create_single_series_fcms(
     membership_matrices, previous_considered_indices, concept_count
 ):
+    """
+    Create list of FCMs for single time series.
+
+    Parameters
+    ----------
+    membership_matrices : list
+        List of membership matrices for single time series.
+    previous_considered_indices : numpy.ndarray
+        Array containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numpy.array([1, 2, 3]).
+        This argument's entries do not have to be sorted.
+    concept_count : int
+        Number of concepts (centroids).
+
+    Returns
+    -------
+    list
+        List containing FCMs (or one FCM) of type numpy.ndarray.
+
+    """
+
     trained_array_size = (
         previous_considered_indices.size * concept_count + concept_count ** 2
     )
@@ -260,7 +358,8 @@ def create_training_fcms(
 
     Parameters
     ----------
-    series : numpy.ndarray
+    series_list : list
+        List of time series (numpy.ndarray).
         Input series, does not have to be normalized.
         Note that its shape must be (space_dim, N) where N is a number of
         observations in the series and space_dim is the dimension of space
@@ -274,15 +373,15 @@ def create_training_fcms(
     concept_count : int
         Number of concepts (centroids).
     split : bool
-        If True, we get series.shape[0] number of FCMs.
-        If False, we get one FCM.
+        If True, we get series_list[0].shape[0] number of FCMs for each time series.
+        If False, we get one FCM for each time series.
 
     Returns
     -------
     tuple
         The first element of tuple is a list of 2d numpy.ndarrays which
         are coordinates of cluster centers. This list can be later
-        used as an argument of create_test_fcms function. If split==False
+        used as an argument of create_test_fcms function. If split == False
         then this list contains only one cluster centers ndarray.
         The second element of tuple is a list of lists containing FCMs
         (or one FCM) of type numpy.ndarray. Each element of the outer list
@@ -307,7 +406,36 @@ def create_test_fcms(
     series_list, previous_considered_indices, concept_count, split, cluster_centers
 ):
     """
-    TU COS WPISAC
+    Creates FCMs for given multidimensional series - one FCM for one coordinate.
+
+    Parameters
+    ----------
+    series_list : list
+        List of time series (numpy.ndarray).
+        Input series, does not have to be normalized.
+        Note that its shape must be (space_dim, N) where N is a number of
+        observations in the series and space_dim is the dimension of space
+        to which given points belong.
+    previous_considered_indices : numpy.ndarray
+        Array containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numpy.array([1, 2, 3]).
+        This argument's entries do not have to be sorted.
+    concept_count : int
+        Number of concepts (centroids).
+    split : bool
+        If True, we get series_list[0].shape[0] number of FCMs for each time series.
+        If False, we get one FCM for each time series.
+    cluster_centers : list
+        List of 2d numpy.ndarrays which are coordinates of cluster centers.
+
+    Returns
+    -------
+    list
+        List of lists containing FCMs (or one FCM) of type numpy.ndarray.
+        Each element of the outer list corresponds to one series in series_list.
+
     """
     membership_matrices_list = _fuzzify_test_series_list(
         series_list, cluster_centers, split

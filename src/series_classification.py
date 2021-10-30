@@ -9,11 +9,41 @@ import fcm_creation
 import svm
 
 
-def _create_models(
-    dir_path, length_percent, previous_considered_indices, split, cluster_centers
+def _get_series(dir_path, length_percent):
+    """
+    Returns list of time series from given directory.
+
+    Parameters
+    ----------
+    dir_path : string
+        Path to directory which contains directories (named with class numbers)
+        with CSV time series files.
+    length_percent : number
+        Percent of rows of time series which should be taken into consideration.
+
+    Returns
+    -------
+    tuple
+        Tuple containing list of class names and list of time series.
+
+    """
+    class_list = []
+    series_list = []
+
+    for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
+        for file in os.scandir(class_dir.path):
+            if file.name.endswith(".csv"):
+                class_list.append(int(class_dir.name))
+                series_list.append(read_data.process_data(file.path, length_percent))
+
+    return class_list, series_list
+
+
+def _create_training_models(
+    dir_path, length_percent, previous_considered_indices, split
 ):
     """
-    Creates fcm models out of files in given directory.
+    Creates FCM models out of files in given directory.
 
     Parameters
     ----------
@@ -31,35 +61,60 @@ def _create_models(
     split : bool
         If True, we create FCM for each coordinate of time series.
         If False, we create one FCM.
-    cluster_centers
 
     Returns
     -------
-    zip
-        Zip object containing class name and FCM model.
+    tuple
+        Tuple containing list with class names, list with FCM models and list of cluster centers.
 
     """
-    prev = np.array(previous_considered_indices)
+    class_list, series_list = _get_series(dir_path, length_percent)
 
-    class_list = []
-    series_list = []
+    cluster_centers, fcm_list = fcm_creation.create_training_fcms(
+        series_list, np.array(previous_considered_indices), 20, split
+    )
+    return class_list, fcm_list, cluster_centers
 
-    for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
-        for file in os.scandir(class_dir.path):
-            if file.name.endswith(".csv"):
-                class_list.append(int(class_dir.name))
-                series_list.append(read_data.process_data(file.path, length_percent))
 
-    if cluster_centers is None:
-        cluster_centers, fcm_list = fcm_creation.create_training_fcms(
-            series_list, prev, 20, split
-        )
-        return class_list, fcm_list, cluster_centers
+def _create_test_models(
+    dir_path, length_percent, previous_considered_indices, split, cluster_centers
+):
+    """
+    Creates FCM models out of files in given directory.
+
+    Parameters
+    ----------
+    dir_path : string
+        Path to directory which contains directories (named with class numbers)
+        with CSV time series files.
+    length_percent : number
+        Percent of rows of time series which should be taken into consideration.
+    previous_considered_indices : list
+        List containing indices of previous elements which will be
+        FCM's input for predicting the next one. For example, if you want
+        to predict next element using the current one, the previous one and
+        before the previous one you can pass numbers: 1, 2, 3.
+        This argument's entries do not have to be sorted.
+    split : bool
+        If True, we create FCM for each coordinate of time series.
+        If False, we create one FCM.
+    cluster_centers : list
+        List containing cluster centers (numpy.ndarray).
+        If split is True, then list contains cluster centers for every coordinate of time series.
+        If split is False, then list contains only one numpy.ndarray.
+
+    Returns
+    -------
+    tuple
+        Tuple containing list with class names, list with FCM models.
+
+    """
+    class_list, series_list = _get_series(dir_path, length_percent)
 
     fcm_list = fcm_creation.create_test_fcms(
-        series_list, prev, 20, split, cluster_centers
+        series_list, np.array(previous_considered_indices), 20, split, cluster_centers
     )
-    return class_list, fcm_list, None
+    return class_list, fcm_list
 
 
 def train(dir_path, length_percent, previous_considered_indices, split):
@@ -85,14 +140,18 @@ def train(dir_path, length_percent, previous_considered_indices, split):
 
     Returns
     -------
-    None.
+    list
+        List containing cluster centers (numpy.ndarray).
+        If split is True, then list contains cluster centers for every coordinate of time series.
+        If split is False, then list contains only one numpy.ndarray.
 
     """
     print("Train")
     print("Create FCM models...")
-    classes, fcms, cluster_centers = _create_models(
-        dir_path, length_percent, previous_considered_indices, split, None
+    classes, fcms, cluster_centers = _create_training_models(
+        dir_path, length_percent, previous_considered_indices, split
     )
+
     print("Train SVM algorithm...")
     svm.save_svm(
         svm.create_and_train_svm(np.array(fcms), np.array(classes), kernel="rbf"),
@@ -122,6 +181,10 @@ def test(dir_path, length_percent, previous_considered_indices, split, cluster_c
     split : bool
         If True, we create FCM for each coordinate of time series.
         If False, we create one FCM.
+    cluster_centers : list
+        List containing cluster centers (numpy.ndarray).
+        If split is True, then list contains cluster centers for every coordinate of time series.
+        If split is False, then list contains only one numpy.ndarray.
 
     Returns
     -------
@@ -131,11 +194,13 @@ def test(dir_path, length_percent, previous_considered_indices, split, cluster_c
     """
     print("Test")
     print("Create FCM models...")
-    classes, fcms, _ = _create_models(
+    classes, fcms = _create_test_models(
         dir_path, length_percent, previous_considered_indices, split, cluster_centers
     )
+
     print("Classify time series...")
     predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))
+
     correct_ones = 0
     for predicted_class_number, class_number in zip(predicted_classes, classes):
         if predicted_class_number == class_number:
