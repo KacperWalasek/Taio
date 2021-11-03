@@ -185,7 +185,7 @@ def _get_coordinates_list(series_list, split):
     horizontal_combined_coordinates = np.hstack(combined_coordinates_list)
     if split:
         horizontal_coordinates_list = np.vsplit(
-            horizontal_combined_coordinates, horizontal_combined_coordinates.shape[0]
+            horizontal_combined_coordinates, horizontal_combined_coordinates.shape[0]/2
         )
     else:
         horizontal_coordinates_list = [horizontal_combined_coordinates]
