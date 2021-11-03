@@ -233,8 +233,8 @@ def _fuzzify_training_series_list(series_list, concept_count, split):
                     functools.partial(
                         np.vsplit,
                         indices_or_sections=[
-                            x - 1
-                            for x in accumulate([y.shape[1] for y in series_list[:-1]])
+                            x
+                            for x in accumulate([y.shape[1] - 1 for y in series_list[:-1]])
                         ],
                     ),
                     membership_matrices,
@@ -388,9 +388,11 @@ def create_training_fcms(
         corresponds to one series in series_list.
 
     """
+    print("Calculating cmeans clasters...", flush = True)
     cluster_centers_list, membership_matrices_list = _fuzzify_training_series_list(
         series_list, concept_count, split
     )
+    print("Creating FCM models...", flush = True)
     fun = functools.partial(
         _create_single_series_fcms,
         previous_considered_indices=previous_considered_indices,
@@ -437,9 +439,11 @@ def create_test_fcms(
         Each element of the outer list corresponds to one series in series_list.
 
     """
+    print("Calculating cmeans clasters...", flush = True)
     membership_matrices_list = _fuzzify_test_series_list(
         series_list, cluster_centers, split
     )
+    print("Creating FCM models...", flush = True)
     fun = functools.partial(
         _create_single_series_fcms,
         previous_considered_indices=previous_considered_indices,

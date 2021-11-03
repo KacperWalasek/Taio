@@ -146,13 +146,12 @@ def train(dir_path, length_percent, previous_considered_indices, split):
         If split is False, then list contains only one numpy.ndarray.
 
     """
-    print("Train")
-    print("Create FCM models...")
+    print("Train", flush=True)
     classes, fcms, cluster_centers = _create_training_models(
         dir_path, length_percent, previous_considered_indices, split
     )
 
-    print("Train SVM algorithm...")
+    print("Train SVM algorithm...", flush=True)
     svm.save_svm(
         svm.create_and_train_svm(np.array(fcms), np.array(classes), kernel="rbf"),
         "./svmFile.joblib",
@@ -192,13 +191,13 @@ def test(dir_path, length_percent, previous_considered_indices, split, cluster_c
         Classification result.
 
     """
-    print("Test")
-    print("Create FCM models...")
+    print("Test", flush=True)
+    print("Create FCM models...", flush=True)
     classes, fcms = _create_test_models(
         dir_path, length_percent, previous_considered_indices, split, cluster_centers
     )
 
-    print("Classify time series...")
+    print("Classify time series...", flush=True)
     predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))
 
     correct_ones = 0
@@ -206,5 +205,5 @@ def test(dir_path, length_percent, previous_considered_indices, split, cluster_c
         if predicted_class_number == class_number:
             correct_ones += 1
     result = correct_ones / len(classes)
-    print("Classification result: ", result)
+    print("Classification result: ", result, flush=True)
     return result
