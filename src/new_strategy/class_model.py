@@ -3,8 +3,9 @@ Class for one class model - clusters.
 """
 import os
 import multiprocessing
-import read_data
 
+import read_data
+import cmeans_clustering
 
 class ClassModel(multiprocessing.Process):
     """
@@ -23,6 +24,7 @@ class ClassModel(multiprocessing.Process):
         self.move = move
         self.series_list = []
         self.clusters = []
+        self.memberships = []
 
     def get_series_list(self):
         """
@@ -36,9 +38,10 @@ class ClassModel(multiprocessing.Process):
                 )
 
         # tu lista jest spoko i działa
-        self.series_list = multiprocessing.Manager().list(series_list)
+        self.series_list = series_list #multiprocessing.Manager().list(series_list)
 
     def run(self):
+        print(self.class_number)
         self.get_series_list()
-
-        self.clusters = [0]  # tu maja sie liczyc klastry
+        self.clusters, self.memberships = cmeans_clustering.find_clusters(self.series_list, 4)
+        

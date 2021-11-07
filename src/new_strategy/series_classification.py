@@ -6,7 +6,7 @@ import train_model
 import test_series
 import class_model
 import read_data
-
+import cmeans_clustering
 
 def train(dir_path, length_percent, previous_considered_indices, move):
     """
@@ -40,24 +40,24 @@ def train(dir_path, length_percent, previous_considered_indices, move):
         )
 
     for model in class_models:
-        model.start()
+        model.run() # tu było start wcześniej ~Kacper
 
-    for model in class_models:
-        model.join()
+    # for model in class_models:
+    #     model.join()
 
     train_models = []
 
     for model1 in class_models:
         for model2 in class_models:
             if model1 != model2:
-                classes_series_lists = [
-                    # tu series_list jest puste
-                    [model1.class_number, model1.series_list],
-                    [model2.class_number, model2.series_list],
+                model2_memberships = cmeans_clustering.find_distances_based_on_model(model1, model2)
+                classes_memberships = [
+                    [model1.class_number, model1.memberships],
+                    [model2.class_number, model2_memberships],
                 ]
                 train_models.append(
                     train_model.TrainModel(
-                        classes_series_lists,
+                        classes_memberships,
                         model1.clusters,
                         length_percent,
                         previous_considered_indices,

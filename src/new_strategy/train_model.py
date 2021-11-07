@@ -11,18 +11,17 @@ class TrainModel(multiprocessing.Process):
 
     def __init__(
         self,
-        classes_series_lists,
+        classes_memberships,
         clusters,
         length_percent,
         previous_considered_indices,
         move,
     ):
         multiprocessing.Process.__init__(self)
-
-        self.class1 = classes_series_lists[0][0]
-        self.class2 = classes_series_lists[1][0]
-        self.series_list1 = classes_series_lists[0][1]
-        self.series_list2 = classes_series_lists[1][1]
+        self.class1 = classes_memberships[0][0]
+        self.class2 = classes_memberships[1][0]
+        self.memberships1 = classes_memberships[0][1]
+        self.memberships2 = classes_memberships[1][1]
         self.clusters = clusters
         self.length_percent = length_percent
         self.previous_considered_indices = previous_considered_indices
