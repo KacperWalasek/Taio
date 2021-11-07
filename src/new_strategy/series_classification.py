@@ -4,6 +4,7 @@ Train and test functions.
 import os
 import train_model
 import test_series
+import class_model
 import read_data
 
 
@@ -19,24 +20,49 @@ def train(dir_path, length_percent, previous_considered_indices, move):
 
     Returns
     -------
-    tuple(list(tuple(int, int, numpy.ndarray)), int)
+    tuple(list(tuple(int, int, numpy.ndarray, numpy.ndarray)), int)
 
     """
 
-    train_models = []
     class_dirs = [entry for entry in os.scandir(dir_path) if entry.is_dir()]
 
-    for i in range(len(class_dirs)):
-        for j in range(i + 1, len(class_dirs)):
-            classes_paths = [
-                [int(class_dirs[i].name), class_dirs[i].path],
-                [int(class_dirs[j].name), class_dirs[j].path],
-            ]
-            train_models.append(
-                train_model.TrainModel(
-                    classes_paths, length_percent, previous_considered_indices, move
-                )
+    class_models = []
+
+    for class_dir in class_dirs:
+        class_models.append(
+            class_model.ClassModel(
+                int(class_dir.name),
+                class_dir.path,
+                length_percent,
+                previous_considered_indices,
+                move,
             )
+        )
+
+    for model in class_models:
+        model.start()
+
+    for model in class_models:
+        model.join()
+
+    train_models = []
+
+    for model1 in class_models:
+        for model2 in class_models:
+            if model1 != model2:
+                classes_series_lists = [
+                    [model1.class_number, model1.series_list],  # .value],
+                    [model2.class_number, model2.series_list],  # .value],
+                ]
+                train_models.append(
+                    train_model.TrainModel(
+                        classes_series_lists,
+                        model1.clusters,  # .value,
+                        length_percent,
+                        previous_considered_indices,
+                        move,
+                    )
+                )
 
     for model in train_models:
         model.start()
@@ -44,7 +70,10 @@ def train(dir_path, length_percent, previous_considered_indices, move):
     for model in train_models:
         model.join()
 
-    models = [(model.class1, model.class2, model.matrices) for model in train_models]
+    models = [
+        (model.class1, model.class2, model.clusters, model.matrices)  # .value)
+        for model in train_models
+    ]
 
     return models, len(class_dirs)
 
@@ -60,7 +89,7 @@ def test(
         [0, 1]
     previous_considered_indices : list
     move : int
-    models : list(tuple(int, int, numpy.ndarray))
+    models : list(tuple(int, int, numpy.ndarray, numpy.ndarray))
     class_count : int
 
     Returns
@@ -92,4 +121,5 @@ def test(
         series_test.join()
 
     result = sum([series_test.result.value for series_test in tests]) / len(tests)
+
     return result
