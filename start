@@ -1,0 +1,8 @@
+#!/bin/bash
+#SBATCH --job-name=taio_fcm_test
+#SBATCH --cpus-per-task=128
+#SBATCH N1
+
+source /home2/faculty/pwesolowski/.pyenv/versions/venv/bin/activate
+
+python src/test_cases.py

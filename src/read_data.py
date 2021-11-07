@@ -7,22 +7,15 @@ import numpy as np
 
 def process_data(file, length_percent):
     """
-    Read data from CSV file and prepare them for next steps.
-    Preparation consists of deleting redundant rows from beginning
-    and end of file and transposing resulting ndarray.
-
     Parameters
     ----------
     file : string
-        Path to CSV file which has data that are supposed to be processed.
     length_percent : number
-        Percent of rows of time series which should be taken into consideration.
+        [0, 1]
 
     Returns
     -------
     numpy.ndarray
-        Two dimensional numpy array where each column from
-        file is a one dimensional array.
 
     """
 
@@ -37,18 +30,13 @@ def process_data(file, length_percent):
 
 def _delete_redundant_rows(data):
     """
-    Delete first n-1 rows when first n rows are the same
-    (last rows analogously).
-
     Parameters
     ----------
     data : numpy.ndarray
-        Two dimensional numpy array which will be processed.
 
     Returns
     -------
     numpy.ndarray
-        Two dimensional numpy array.
 
     """
 

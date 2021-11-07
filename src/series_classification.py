@@ -1,209 +1,126 @@
 """
-This module contains train and test functions
-which should be used to train classifier and test it.
+Train and test functions.
 """
 import os
-import numpy as np
+import train_model
+import test_series
+import class_model
 import read_data
-import fcm_creation
-import svm
+import cmeans_clustering
 
-
-def _get_series(dir_path, length_percent):
+def train(dir_path, length_percent, previous_considered_indices, move):
     """
-    Returns list of time series from given directory.
-
     Parameters
     ----------
     dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
     length_percent : number
-        Percent of rows of time series which should be taken into consideration.
+        [0, 1]
+    previous_considered_indices : list
+    move : int
 
     Returns
     -------
-    tuple
-        Tuple containing list of class names and list of time series.
+    tuple(list(tuple(int, int, numpy.ndarray, numpy.ndarray)), int)
 
     """
-    class_list = []
-    series_list = []
 
-    for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
-        for file in os.scandir(class_dir.path):
-            if file.name.endswith(".csv"):
-                class_list.append(int(class_dir.name))
-                series_list.append(read_data.process_data(file.path, length_percent))
+    class_dirs = [entry for entry in os.scandir(dir_path) if entry.is_dir()]
 
-    return class_list, series_list
+    class_models = []
+
+    for class_dir in class_dirs:
+        class_models.append(
+            class_model.ClassModel(
+                int(class_dir.name),
+                class_dir.path,
+                length_percent,
+                previous_considered_indices,
+                move,
+            )
+        )
+
+    for model in class_models:
+        model.run() # tu było start wcześniej ~Kacper
+
+    # for model in class_models:
+    #     model.join()
+
+    train_models = []
+
+    for model1 in class_models:
+        for model2 in class_models:
+            if model1 != model2:
+                model2_memberships = cmeans_clustering.find_distances_based_on_model(model1, model2)
+                classes_memberships = [
+                    [model1.class_number, model1.memberships],
+                    [model2.class_number, model2_memberships],
+                ]
+                train_models.append(
+                    train_model.TrainModel(
+                        classes_memberships,
+                        model1.clusters,
+                        length_percent,
+                        previous_considered_indices,
+                        move,
+                    )
+                )
+
+    for model in train_models:
+        model.start()
+
+    for model in train_models:
+        model.join()
+
+    models = [
+        (model.class1, model.class2, model.clusters, model.matrices)
+        for model in train_models
+    ]
+
+    return models, len(class_dirs)
 
 
-def _create_training_models(
-    dir_path, length_percent, previous_considered_indices, split
+def test(
+    dir_path, length_percent, previous_considered_indices, move, models, class_count
 ):
     """
-    Creates FCM models out of files in given directory.
-
     Parameters
     ----------
     dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
     length_percent : number
-        Percent of rows of time series which should be taken into consideration.
+        [0, 1]
     previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
-
-    Returns
-    -------
-    tuple
-        Tuple containing list with class names, list with FCM models and list of cluster centers.
-
-    """
-    class_list, series_list = _get_series(dir_path, length_percent)
-
-    cluster_centers, fcm_list = fcm_creation.create_training_fcms(
-        series_list, np.array(previous_considered_indices), 20, split
-    )
-    return class_list, fcm_list, cluster_centers
-
-
-def _create_test_models(
-    dir_path, length_percent, previous_considered_indices, split, cluster_centers
-):
-    """
-    Creates FCM models out of files in given directory.
-
-    Parameters
-    ----------
-    dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
-    length_percent : number
-        Percent of rows of time series which should be taken into consideration.
-    previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
-    cluster_centers : list
-        List containing cluster centers (numpy.ndarray).
-        If split is True, then list contains cluster centers for every coordinate of time series.
-        If split is False, then list contains only one numpy.ndarray.
-
-    Returns
-    -------
-    tuple
-        Tuple containing list with class names, list with FCM models.
-
-    """
-    class_list, series_list = _get_series(dir_path, length_percent)
-
-    fcm_list = fcm_creation.create_test_fcms(
-        series_list, np.array(previous_considered_indices), 20, split, cluster_centers
-    )
-    return class_list, fcm_list
-
-
-def train(dir_path, length_percent, previous_considered_indices, split):
-    """
-    Trains svm classifier.
-
-    Parameters
-    ----------
-    dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
-    length_percent : number
-        Percent of rows of time series which should be taken into consideration.
-    previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
-
-    Returns
-    -------
-    list
-        List containing cluster centers (numpy.ndarray).
-        If split is True, then list contains cluster centers for every coordinate of time series.
-        If split is False, then list contains only one numpy.ndarray.
-
-    """
-    print("Train", flush=True)
-    classes, fcms, cluster_centers = _create_training_models(
-        dir_path, length_percent, previous_considered_indices, split
-    )
-
-    print("Train SVM algorithm...", flush=True)
-    svm.save_svm(
-        svm.create_and_train_svm(np.array(fcms), np.array(classes), kernel="rbf"),
-        "./svmFile.joblib",
-    )
-
-    return cluster_centers
-
-
-def test(dir_path, length_percent, previous_considered_indices, split, cluster_centers):
-    """
-    Tests svm classifier.
-
-    Parameters
-    ----------
-    dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
-    length_percent : number
-        Percent of rows of time series which should be taken into consideration.
-    previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
-    cluster_centers : list
-        List containing cluster centers (numpy.ndarray).
-        If split is True, then list contains cluster centers for every coordinate of time series.
-        If split is False, then list contains only one numpy.ndarray.
+    move : int
+    models : list(tuple(int, int, numpy.ndarray, numpy.ndarray))
+    class_count : int
 
     Returns
     -------
     number
-        Classification result.
+        [0, 1]
 
     """
-    print("Test", flush=True)
-    print("Create FCM models...", flush=True)
-    classes, fcms = _create_test_models(
-        dir_path, length_percent, previous_considered_indices, split, cluster_centers
-    )
+    tests = []
 
-    print("Classify time series...", flush=True)
-    predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))
+    for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
+        for file in os.scandir(class_dir.path):
+            if file.name.endswith(".csv"):
+                tests.append(
+                    test_series.Test(
+                        int(class_dir.name),
+                        read_data.process_data(file.path, length_percent),
+                        previous_considered_indices,
+                        move,
+                        models,
+                        class_count,
+                    )
+                )
 
-    correct_ones = 0
-    for predicted_class_number, class_number in zip(predicted_classes, classes):
-        if predicted_class_number == class_number:
-            correct_ones += 1
-    result = correct_ones / len(classes)
-    print("Classification result: ", result, flush=True)
+    for series_test in tests:
+        series_test.start()
+
+    for series_test in tests:
+        series_test.join()
+
+    result = sum([series_test.result.value for series_test in tests]) / len(tests)
+
     return result
