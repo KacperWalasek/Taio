@@ -21,8 +21,8 @@ class ClassModel(multiprocessing.Process):
         self.length_percent = length_percent
         self.previous_considered_indices = previous_considered_indices
         self.move = move
-        self.series_list = []  # tu cos z Value
-        self.clusters = []  # tu cos z Value
+        self.series_list = []
+        self.clusters = []
 
     def get_series_list(self):
         """
@@ -35,9 +35,10 @@ class ClassModel(multiprocessing.Process):
                     read_data.process_data(file.path, self.length_percent)
                 )
 
-        self.series_list = series_list  # .value = series_list
+        # tu lista jest spoko i działa
+        self.series_list = multiprocessing.Manager().list(series_list)
 
     def run(self):
         self.get_series_list()
 
-        self.clusters = [0]  # .value = [0]  #tu maja sie liczyc klastry
+        self.clusters = [0]  # tu maja sie liczyc klastry

@@ -27,8 +27,8 @@ class TrainModel(multiprocessing.Process):
         self.length_percent = length_percent
         self.previous_considered_indices = previous_considered_indices
         self.move = move
-        self.matrices = []  # tu cos z Value
+        self.matrices = []
 
     def run(self):
         # tu trzeba cos napisac
-        self.matrices = [0]  # .value = [0]
+        self.matrices = [0]

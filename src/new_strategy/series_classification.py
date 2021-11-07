@@ -51,13 +51,14 @@ def train(dir_path, length_percent, previous_considered_indices, move):
         for model2 in class_models:
             if model1 != model2:
                 classes_series_lists = [
-                    [model1.class_number, model1.series_list],  # .value],
-                    [model2.class_number, model2.series_list],  # .value],
+                    # tu series_list jest puste
+                    [model1.class_number, model1.series_list],
+                    [model2.class_number, model2.series_list],
                 ]
                 train_models.append(
                     train_model.TrainModel(
                         classes_series_lists,
-                        model1.clusters,  # .value,
+                        model1.clusters,
                         length_percent,
                         previous_considered_indices,
                         move,
@@ -71,7 +72,7 @@ def train(dir_path, length_percent, previous_considered_indices, move):
         model.join()
 
     models = [
-        (model.class1, model.class2, model.clusters, model.matrices)  # .value)
+        (model.class1, model.class2, model.clusters, model.matrices)
         for model in train_models
     ]
 
