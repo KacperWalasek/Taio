@@ -49,8 +49,8 @@ class SeriesClassifier:  # pylint: disable=too-few-public-methods
                 series_list, class_model.centroids
             )
             current_class_binary_classifiers = filter(
-                lambda x, class_number=class_model.class_number: class_number
-                in x.class_numbers,
+                lambda x, class_number=class_model.class_number: x.class_numbers[0]
+                == class_number,
                 self._binary_classifiers,
             )
             for series_idx, membership_matrix in enumerate(membership_list):
@@ -60,6 +60,9 @@ class SeriesClassifier:  # pylint: disable=too-few-public-methods
                     )
                     col_idx = predicted_class - 1
                     series_class_votes[series_idx, col_idx] += 1
+                    # pylint: disable=fixme
+                    # TODO: Sprawdź też przydzielanie wag w tym momencie również dla klasy gorszej
+                    # - chyba to będzie lepsze podejście
                     series_class_weights[series_idx, col_idx] += predicted_class_weight
 
         return self._prepare_result(series_class_votes, series_class_weights)
