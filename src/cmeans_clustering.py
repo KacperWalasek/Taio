@@ -32,7 +32,7 @@ def _accumulate_series(series_list):
         lengths (nr_of_series)
     """
     combined_coordinates_list = _include_diffs(series_list)
-    lengths = list(map(lambda x: x.shape[1],combined_coordinates_list))
+    lengths = [x.shape[1] for x in combined_coordinates_list]
     horizontal_combined_coordinates = np.hstack(combined_coordinates_list)
 
     return horizontal_combined_coordinates, lengths
@@ -47,7 +47,7 @@ def _cmeans_wrapper(coordinates, concept_count):
     """
     m = 2
     error = 1e-8
-    maxiter = 1e3
+    maxiter = 1e2
     ret = fuzz.cmeans(coordinates, concept_count, m, error, maxiter)
     return (
         ret[0],
@@ -69,20 +69,21 @@ def find_clusters(series_list, concept_count):
     series_memberships = np.split(memberships_combined, spliting_indices)
     return clusters, series_memberships
 
-def find_distances_based_on_model(model1, model2):
+def find_memberships(series_list, centroids):
     """
-        model1 - model with correct centroides
-        model2 - model to calculate memberships
+        series_list (nr_of_series, 3, series_len)
+        centroids - 2d numpy.ndarray with centroids
 
         returns:
+        list of 2d numpy.ndarray
         (nr_of_series, series_len, concept_count)
     """
     predict_fun = functools.partial(
                 fuzz.cmeans_predict, 
-                cntr_trained = model1.clusters, 
+                cntr_trained = centroids, 
                 m = 2,
                 error = 1e-8,
-                maxiter = 1e3
+                maxiter = 1e2
             )
-    with_diffs = _include_diffs(model2.series_list)
-    return list(map(lambda x: predict_fun(x)[1].T, with_diffs))
+    with_diffs = _include_diffs(series_list)
+    return [x[1].T for x in map(predict_fun, with_diffs)]

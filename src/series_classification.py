@@ -2,9 +2,9 @@
 Train and test functions.
 """
 import os
-import train_model
-import test_series
-import class_model
+from binary_classifier_model import BinaryClassifierModel
+from class_model import ClassModel
+from series_classifier import SeriesClassifier
 import read_data
 import cmeans_clustering
 
@@ -20,7 +20,7 @@ def train(dir_path, length_percent, previous_considered_indices, move):
 
     Returns
     -------
-    tuple(list(tuple(int, int, numpy.ndarray, numpy.ndarray)), int)
+    SeriesClassifier
 
     """
 
@@ -30,12 +30,10 @@ def train(dir_path, length_percent, previous_considered_indices, move):
 
     for class_dir in class_dirs:
         class_models.append(
-            class_model.ClassModel(
+            ClassModel(
                 int(class_dir.name),
                 class_dir.path,
-                length_percent,
-                previous_considered_indices,
-                move,
+                length_percent
             )
         )
 
@@ -45,38 +43,26 @@ def train(dir_path, length_percent, previous_considered_indices, move):
     # for model in class_models:
     #     model.join()
 
-    train_models = []
+    binary_classifier_models = []
 
     for model1 in class_models:
         for model2 in class_models:
             if model1 != model2:
-                model2_memberships = cmeans_clustering.find_distances_based_on_model(model1, model2)
-                classes_memberships = [
-                    [model1.class_number, model1.memberships],
-                    [model2.class_number, model2_memberships],
-                ]
-                train_models.append(
-                    train_model.TrainModel(
-                        classes_memberships,
-                        model1.clusters,
-                        length_percent,
+                model2_memberships = cmeans_clustering.find_memberships(model2.series_list, model1.centroids)
+                binary_classifier_models.append(
+                    BinaryClassifierModel(
+                        (model1.class_number, model2.class_number),
+                        (model1.memberships, model2_memberships),
+                        model1.centroids,
                         previous_considered_indices,
                         move,
                     )
                 )
 
-    for model in train_models:
-        model.start()
+    for model in binary_classifier_models:
+        model.train()
 
-    for model in train_models:
-        model.join()
-
-    models = [
-        (model.class1, model.class2, model.clusters, model.matrices)
-        for model in train_models
-    ]
-
-    return models, len(class_dirs)
+    return SeriesClassifier(class_models, binary_classifier_models)
 
 
 def test(

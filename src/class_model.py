@@ -2,28 +2,23 @@
 Class for one class model - clusters.
 """
 import os
-import multiprocessing
 
 import read_data
 import cmeans_clustering
 
-class ClassModel(multiprocessing.Process):
+class ClassModel():
     """
     Get class clusters with run function.
     """
 
     def __init__(
-        self, class_number, path, length_percent, previous_considered_indices, move
+        self, class_number, path, length_percent
     ):
-        multiprocessing.Process.__init__(self)
-
         self.class_number = class_number
         self.path = path
         self.length_percent = length_percent
-        self.previous_considered_indices = previous_considered_indices
-        self.move = move
         self.series_list = []
-        self.clusters = []
+        self.centroids = []
         self.memberships = []
 
     def get_series_list(self):
@@ -43,5 +38,5 @@ class ClassModel(multiprocessing.Process):
     def run(self):
         print(self.class_number)
         self.get_series_list()
-        self.clusters, self.memberships = cmeans_clustering.find_clusters(self.series_list, 4)
+        self.centroids, self.memberships = cmeans_clustering.find_clusters(self.series_list, 12)
         

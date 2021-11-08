@@ -1,13 +1,13 @@
 """
-Classifier model (2 classification classes).
+BinaryClassifierModel model (2 classification classes).
 """
 import numpy as np
 import pygad
 
 
-class ClassifierModel:
+class BinaryClassifierModel:
     """
-    Train one model with run function.
+    Class representing single class vs class classifier model.
 
     Parameters
     ----------
@@ -16,8 +16,11 @@ class ClassifierModel:
     membership_matrices : tuple
         Tuple containing two lists of series membership matrices.
         Both elements of tuple correspond to classes specified in class_numbers.
-    previous_considered_indices: numpy.ndarray
-        Array containing indices of previous elements which will be
+    centroids: numpy.ndarray
+        Ndarray of shape (concept_count, centroids_space_dimension) containing
+        coordinates of centroids.
+    previous_considered_indices: list
+        List containing indices of previous elements which will be
         FCM's input for predicting the next one.
     move: int
         Step of frame used in processing single series.
@@ -25,25 +28,30 @@ class ClassifierModel:
     """
 
     _GA_PARAMS = {
-        "num_generations": 1000,
+        "num_generations": 5,
         "sol_per_pop": 20,
         "num_parents_mating": 10,
         "gene_space": {"low": -1, "high": 1},
         "gene_type": np.float64,
         "mutation_type": "random",
+        "stop_criteria": "reach_0"
     }
 
     def __init__(
         self,
         class_numbers,
         membership_matrices,
+        centroids,
         previous_considered_indices,
         move,
     ):
 
         self.class_numbers = class_numbers
         self._membership_matrices = membership_matrices
-        self._previous_considered_indices = previous_considered_indices
+        self.centroids = centroids
+        self._previous_considered_indices = np.array(
+            previous_considered_indices, dtype=int
+        )
         self._move = move
 
         self._concept_count = membership_matrices[0][0].shape[1]
@@ -54,7 +62,7 @@ class ClassifierModel:
     def _sigmoid(x):
         return 1 / (1 + np.exp(-5 * x))
 
-    def _classify_series(self, membership_matrix, u_matrix, w_matrix, v_matrix):
+    def _predict_series(self, membership_matrix, u_matrix, w_matrix, v_matrix):
 
         max_previous_index = self._previous_considered_indices.max()
 
@@ -72,18 +80,18 @@ class ClassifierModel:
         # Now we compute matrix containing a-values for each target.
         # The number of columns is equal to concept_count (each target element
         # corresponds to single row which contains a-value for each concept).
-        a_matrix = ClassifierModel._sigmoid(
+        a_matrix = self._sigmoid(
             (membership_matrix[input_indices] * u_matrix).sum(axis=1)
         )
 
         # We calculate predicted values for each target.
-        predicted_concept_membership_matrix = ClassifierModel._sigmoid(
+        predicted_concept_membership_matrix = self._sigmoid(
             np.matmul(a_matrix, w_matrix.T)
         )
 
         # The last step - class prediction.
         # v_matrix must be of shape (2, concept_count)
-        predicted_class_memberships = ClassifierModel._sigmoid(
+        predicted_class_memberships = self._sigmoid(
             (predicted_concept_membership_matrix[:, np.newaxis] * v_matrix).sum(axis=2)
         )
         discrete_class_memberships = np.zeros_like(
@@ -115,7 +123,7 @@ class ClassifierModel:
             misclassified_count = 0
             for idx, class_number in enumerate(self.class_numbers):
                 for membership_matrix in self._membership_matrices[idx]:
-                    assigned_class_number = self._classify_series(
+                    assigned_class_number = self._predict_series(
                         membership_matrix, u_matrix, w_matrix, v_matrix
                     )[0]
                     if assigned_class_number != class_number:
@@ -152,7 +160,7 @@ class ClassifierModel:
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
 
-    def classify_series(self, membership_matrix):
+    def predict(self, membership_matrix):
         """
         Method which classifies series to one of the classes specified
         in self.class_numbers tuple.
@@ -177,7 +185,7 @@ class ClassifierModel:
         if not self.is_trained:
             raise RuntimeError("Classifier has not been trained")
         # pylint: disable = no-value-for-parameter
-        return self._classify_series(membership_matrix, *self._uwv_matrices)
+        return self._predict_series(membership_matrix, *self._uwv_matrices)
 
 
 if __name__ == "__main__":
@@ -194,7 +202,9 @@ if __name__ == "__main__":
         [test_membership_3],
     )
     test_previous_indices = np.r_[1:4]
-    model = ClassifierModel((5, 6), test_membership_matrices, test_previous_indices, 2)
+    model = BinaryClassifierModel(
+        (5, 6), test_membership_matrices, None, test_previous_indices, 2
+    )
     model.train()
     if (
         model.classify_series(test_membership_1)[0] == 5
@@ -202,3 +212,5 @@ if __name__ == "__main__":
         and model.classify_series(test_membership_3)[0] == 6
     ):
         print("OK")
+    else:
+        print("NIE OK")
