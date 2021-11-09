@@ -13,7 +13,7 @@ class SeriesClassifier:  # pylint: disable=too-few-public-methods
     Parameters
     ----------
     class_models : list
-        A list of objects of type ClassModel.
+        A list of class models.
     binary_classifiers : list
         A list of previously trained BinaryClassifier objects corresponding to class_models.
 
@@ -45,11 +45,9 @@ class SeriesClassifier:  # pylint: disable=too-few-public-methods
         series_class_weights = np.zeros((len(series_list), len(self.class_models)))
 
         for class_model in self.class_models:
-            membership_list = cmeans.find_memberships(
-                series_list, class_model.centroids
-            )
+            membership_list = cmeans.find_memberships(series_list, class_model[2][0])
             current_class_binary_classifiers = filter(
-                lambda x, class_number=class_model.class_number: x.class_numbers[0]
+                lambda x, class_number=class_model[0]: x.class_numbers[0]
                 == class_number,
                 self._binary_classifiers,
             )
