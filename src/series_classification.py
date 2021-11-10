@@ -60,7 +60,9 @@ def train(dir_path, length_percent, previous_considered_indices, move):
     for model in binary_classifier_models:
         model.train()
 
-    return SeriesClassifier(class_models, binary_classifier_models)
+    res = SeriesClassifier(class_models, binary_classifier_models)
+    res.save("model.dat")
+    return res
 
 
 def _clustering(class_dir, length_percent):

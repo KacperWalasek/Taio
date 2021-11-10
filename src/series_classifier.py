@@ -2,11 +2,12 @@
 Class for classifying list of time series.
 """
 
+import pickle
 import numpy as np
 import cmeans_clustering as cmeans
 
 
-class SeriesClassifier:  # pylint: disable=too-few-public-methods
+class SeriesClassifier:
     """
     A class for classifying time series based upon trained binary classifiers.
 
@@ -53,15 +54,13 @@ class SeriesClassifier:  # pylint: disable=too-few-public-methods
             )
             for series_idx, membership_matrix in enumerate(membership_list):
                 for binary_classifier in current_class_binary_classifiers:
-                    predicted_class, predicted_class_weight = binary_classifier.predict(
+                    predicted_class, output_weights = binary_classifier.predict(
                         membership_matrix
                     )
-                    col_idx = predicted_class - 1
-                    series_class_votes[series_idx, col_idx] += 1
-                    # pylint: disable=fixme
-                    # TODO: Sprawdź też przydzielanie wag w tym momencie również dla klasy gorszej
-                    # - chyba to będzie lepsze podejście
-                    series_class_weights[series_idx, col_idx] += predicted_class_weight
+                    series_class_votes[series_idx, predicted_class - 1] += 1
+                    series_class_weights[
+                        series_idx, np.subtract(binary_classifier.class_numbers, 1)
+                    ] += output_weights
 
         return self._prepare_result(series_class_votes, series_class_weights)
 
@@ -82,3 +81,12 @@ class SeriesClassifier:  # pylint: disable=too-few-public-methods
         result = result + 1
 
         return result
+
+    def save(self, filename):
+        with open(filename, "wb") as file:
+            pickle.dump(self, file, protocol=min(4, pickle.HIGHEST_PROTOCOL))
+
+    @classmethod
+    def load(cls, filename):
+        with open(filename, "rb") as file:
+            return pickle.load(file)

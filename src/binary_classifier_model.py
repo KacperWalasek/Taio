@@ -2,7 +2,8 @@
 BinaryClassifierModel model (2 classification classes).
 """
 import numpy as np
-import pygad
+from geneticalgorithm2 import geneticalgorithm2 as ga
+from geneticalgorithm2 import AlgorithmParams
 
 
 class BinaryClassifierModel:
@@ -28,13 +29,15 @@ class BinaryClassifierModel:
     """
 
     _GA_PARAMS = {
-        "num_generations": 5,
-        "sol_per_pop": 20,
-        "num_parents_mating": 10,
-        "gene_space": {"low": -1, "high": 1},
-        "gene_type": np.float64,
-        "mutation_type": "random",
-        "stop_criteria": "reach_0"
+        "variable_type": "real",
+        "algorithm_parameters": AlgorithmParams(
+            max_num_iteration=5, population_size=20, max_iteration_without_improv=200
+        ),
+    }
+    _GA_RUN_PARAMS = {
+        "no_plot": True,
+        "disable_printing": True,
+        "disable_progress_bar": True,
     }
 
     def __init__(
@@ -97,15 +100,20 @@ class BinaryClassifierModel:
         discrete_class_memberships = np.zeros_like(
             predicted_class_memberships, dtype=int
         )
-        discrete_class_memberships[:, predicted_class_memberships.argmax(1)] = 1
+        # Below range is necessary.
+        discrete_class_memberships[
+            range(predicted_class_memberships.shape[0]),
+            predicted_class_memberships.argmax(1),
+        ] = 1
         total_votes = discrete_class_memberships.sum(axis=0)
-        total_weights = predicted_class_memberships.sum(axis=0)
+        window_count = total_votes.sum()
+        total_weights = predicted_class_memberships.sum(axis=0) / window_count
         chosen_class_idx = (
             total_votes.argmax()
             if total_votes[0] != total_votes[1]
             else total_weights.argmax()
         )
-        return self.class_numbers[chosen_class_idx], total_weights[chosen_class_idx]
+        return self.class_numbers[chosen_class_idx], total_weights
 
     def _split_uwv_array(self, array):
         w_matrix_offset = self._previous_considered_indices.size * self._concept_count
@@ -118,7 +126,7 @@ class BinaryClassifierModel:
         return u_matrix, w_matrix, v_matrix
 
     def _create_fitness_func(self):
-        def fitness_func(solution, _):
+        def fitness_func(solution):
             u_matrix, w_matrix, v_matrix = self._split_uwv_array(solution)
             misclassified_count = 0
             for idx, class_number in enumerate(self.class_numbers):
@@ -128,7 +136,7 @@ class BinaryClassifierModel:
                     )[0]
                     if assigned_class_number != class_number:
                         misclassified_count += 1
-            return -misclassified_count
+            return misclassified_count
 
         return fitness_func
 
@@ -147,16 +155,21 @@ class BinaryClassifierModel:
             + self._concept_count ** 2
             + 2 * self._concept_count
         )
-        ga_instance = pygad.GA(
-            num_genes=trained_array_size,
-            fitness_func=fitness_func,
+        bounds = np.array([[-1, 1]] * trained_array_size)
+        ga_model = ga(
+            fitness_func,
+            dimension=trained_array_size,
+            variable_boundaries=bounds,
             **self._GA_PARAMS,
         )
-        ga_instance.run()
-        # ga_instance.plot_fitness()
-        solution, solution_fitness, _ = ga_instance.best_solution()
-        print(f"Best solution fitness (SSE): {-solution_fitness}")
+        ga_model.run(
+            stop_when_reached=0,
+            **self._GA_RUN_PARAMS,
+            set_function= ga.set_function_multiprocess(fitness_func)
+        )
 
+        solution = ga_model.output_dict["variable"]
+        print(f"Best solution fitness (SSE): {ga_model.output_dict['function']}")
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
 
@@ -207,9 +220,9 @@ if __name__ == "__main__":
     )
     model.train()
     if (
-        model.classify_series(test_membership_1)[0] == 5
-        and model.classify_series(test_membership_2)[0] == 5
-        and model.classify_series(test_membership_3)[0] == 6
+        model.predict(test_membership_1)[0] == 5
+        and model.predict(test_membership_2)[0] == 5
+        and model.predict(test_membership_3)[0] == 6
     ):
         print("OK")
     else:
