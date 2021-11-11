@@ -47,11 +47,11 @@ class SeriesClassifier:
 
         for class_model in self.class_models:
             membership_list = cmeans.find_memberships(series_list, class_model[2][0])
-            current_class_binary_classifiers = filter(
+            current_class_binary_classifiers = list(filter(
                 lambda x, class_number=class_model[0]: x.class_numbers[0]
                 == class_number,
                 self._binary_classifiers,
-            )
+            ))
             for series_idx, membership_matrix in enumerate(membership_list):
                 for binary_classifier in current_class_binary_classifiers:
                     predicted_class, output_weights = binary_classifier.predict(
