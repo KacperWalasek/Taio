@@ -21,7 +21,7 @@ class SeriesClassifier:
     """
 
     def __init__(self, class_models, binary_classifiers):
-        self.class_models = class_models
+        self.class_models = list(map(lambda x: (x[0],x[2][0]),class_models))
         self._binary_classifiers = binary_classifiers
 
     def predict(self, series_list):
@@ -46,7 +46,7 @@ class SeriesClassifier:
         series_class_weights = np.zeros((len(series_list), len(self.class_models)))
 
         for class_model in self.class_models:
-            membership_list = cmeans.find_memberships(series_list, class_model[2][0])
+            membership_list = cmeans.find_memberships(series_list, class_model[1])
             current_class_binary_classifiers = list(filter(
                 lambda x, class_number=class_model[0]: x.class_numbers[0]
                 == class_number,
