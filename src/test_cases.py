@@ -10,7 +10,7 @@ class TestCase:
     TestCase class.
     """
 
-    def __init__(self, length_percent, previous_considered_indices, move, concept_count = 3):
+    def __init__(self, length_percent, previous_considered_indices, move, concept_count = 12):
         self._length_percent = length_percent
         self._previous_considered_indices = previous_considered_indices
         self._move = move

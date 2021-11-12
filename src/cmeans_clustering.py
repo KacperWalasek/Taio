@@ -4,14 +4,8 @@ C-means tools.
 
 import functools
 from itertools import accumulate
-from sys import platform
 import numpy as np
 import skfuzzy as fuzz
-
-if platform in ["linux", "linux2"]:
-    from ray.util.multiprocessing import Pool
-else:
-    from multiprocessing import Pool
 
 
 def _include_diffs(series_list):
@@ -82,7 +76,7 @@ def find_clusters(series_list, concept_count):
     return clusters, series_memberships
 
 
-def find_memberships_for_series(series, centroids):
+def _find_memberships_for_series(series, centroids):
     """
     Get memberships for single time series.
 
@@ -97,7 +91,9 @@ def find_memberships_for_series(series, centroids):
     c = np.shape(centroids)[0]
     series = np.repeat(series[:, np.newaxis, :], c, axis=1)
     centroids = np.repeat(centroids[np.newaxis, :, :], np.shape(series)[0], axis=0)
-    distances = np.linalg.norm(series - centroids, axis=2).T
+    distances = np.fmax(
+        np.linalg.norm(series - centroids, axis=2).T, np.finfo(np.float64).eps
+    )
     distances_squared = distances ** 2
     return (
         1
@@ -119,11 +115,10 @@ def find_memberships(series_list, centroids):
     (nr_of_series, series_len, concept_count)
     """
 
-    predict_fun = functools.partial(find_memberships_for_series, centroids=centroids)
+    predict_fun = functools.partial(_find_memberships_for_series, centroids=centroids)
     with_diffs = _include_diffs(series_list)
 
-    with Pool() as p:
-        memberships = p.map(predict_fun, with_diffs)
+    memberships = list(map(predict_fun, with_diffs))
     return memberships
 
 
@@ -138,6 +133,6 @@ if __name__ == "__main__":
             [6, 6, 7, 6],
         ]
     )
-    c = np.array([[0, 1, 2, 3, 4, 5], [3, 4, 5, 6, 7, 8]])
-    print(find_memberships_for_series(s, c))
+    c = np.array([[0, 1, 2, 3, 4, 5], np.r_[1:7]])
+    print(_find_memberships_for_series(s, c))
     print(fuzz.cmeans_predict(s, c, 2, 1e-8, 1e2)[0])
