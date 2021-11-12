@@ -15,7 +15,7 @@ else:
     from multiprocessing import Pool
 
 
-def train(dir_path, length_percent, previous_considered_indices, move):
+def train(dir_path, length_percent, previous_considered_indices, move, concept_count):
     """
     Parameters
     ----------
@@ -35,7 +35,7 @@ def train(dir_path, length_percent, previous_considered_indices, move):
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
     ]
 
-    fun = functools.partial(_clustering, length_percent=length_percent)
+    fun = functools.partial(_clustering, length_percent=length_percent, concept_count = concept_count)
     with Pool() as p:
         class_models = p.map(fun, class_dirs)
 
@@ -65,7 +65,7 @@ def train(dir_path, length_percent, previous_considered_indices, move):
     return res
 
 
-def _clustering(class_dir, length_percent):
+def _clustering(class_dir, length_percent, concept_count):
     series_list = []
     for file in os.scandir(class_dir[1]):
         if file.name.endswith(".csv"):
@@ -74,7 +74,7 @@ def _clustering(class_dir, length_percent):
     return (
         int(class_dir[0]),
         series_list,
-        cmeans_clustering.find_clusters(series_list, 12),
+        cmeans_clustering.find_clusters(series_list, concept_count),
     )
 
 

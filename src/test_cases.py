@@ -10,12 +10,13 @@ class TestCase:
     TestCase class.
     """
 
-    def __init__(self, length_percent, previous_considered_indices, move):
+    def __init__(self, length_percent, previous_considered_indices, move, concept_count = 3):
         self._length_percent = length_percent
         self._previous_considered_indices = previous_considered_indices
         self._move = move
         self._train_result = 0
         self._test_result = 0
+        self._concept_count = concept_count
 
     def run(self):
         """
@@ -26,6 +27,7 @@ class TestCase:
             self._length_percent,
             self._previous_considered_indices,
             self._move,
+            self._concept_count
         )
         self._train_result = series_classification.test(
             os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
@@ -53,7 +55,7 @@ class TestCase:
 
 if __name__ == "__main__":
     tests = []
-    tests.append(TestCase(1, [1, 2], 1))
+    tests.append(TestCase(1, [1, 2], 1, 2))
 
     for test in tests:
         test.run()

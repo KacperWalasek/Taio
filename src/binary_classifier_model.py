@@ -172,6 +172,7 @@ class BinaryClassifierModel:
         print(f"Best solution fitness (SSE): {ga_model.output_dict['function']}")
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
+        del self._membership_matrices
 
     def predict(self, membership_matrix):
         """
