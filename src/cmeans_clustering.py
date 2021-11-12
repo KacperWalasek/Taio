@@ -1,7 +1,17 @@
+"""
+C-means tools.
+"""
+
 import functools
 from itertools import accumulate
+from sys import platform
 import numpy as np
 import skfuzzy as fuzz
+
+if platform in ["linux", "linux2"]:
+    from ray.util.multiprocessing import Pool
+else:
+    from multiprocessing import Pool
 
 
 def _include_diffs(series_list):
@@ -72,6 +82,33 @@ def find_clusters(series_list, concept_count):
     return clusters, series_memberships
 
 
+def find_memberships_for_series(series, centroids):
+    """
+    Get memberships for single time series.
+
+    series (6, series_len)
+    centroids (concept_count, 6)
+
+    returns:
+    ndarray (series_len, concept_count)
+    """
+
+    series = series.T
+    c = np.shape(centroids)[0]
+    series = np.repeat(series[:, np.newaxis, :], c, axis=1)
+    centroids = np.repeat(centroids[np.newaxis, :, :], np.shape(series)[0], axis=0)
+    distances = np.linalg.norm(series - centroids, axis=2).T
+    distances_squared = distances ** 2
+    return (
+        1
+        / np.sum(
+            np.repeat(distances_squared[np.newaxis, :, :], c, axis=0)
+            / distances_squared[:, np.newaxis, :],
+            axis=0,
+        )
+    ).T
+
+
 def find_memberships(series_list, centroids):
     """
     series_list (nr_of_series, 3, series_len)
@@ -81,8 +118,26 @@ def find_memberships(series_list, centroids):
     list of 2d numpy.ndarray
     (nr_of_series, series_len, concept_count)
     """
-    predict_fun = functools.partial(
-        fuzz.cmeans_predict, cntr_trained=centroids, m=2, error=1e-8, maxiter=1e2
-    )
+
+    predict_fun = functools.partial(find_memberships_for_series, centroids=centroids)
     with_diffs = _include_diffs(series_list)
-    return [x[1].T for x in map(predict_fun, with_diffs)]
+
+    with Pool() as p:
+        memberships = p.map(predict_fun, with_diffs)
+    return memberships
+
+
+if __name__ == "__main__":
+    s = np.array(
+        [
+            [1, 1, 2, 1],
+            [2, 2, 3, 2],
+            [3, 3, 4, 3],
+            [4, 4, 5, 4],
+            [5, 5, 6, 5],
+            [6, 6, 7, 6],
+        ]
+    )
+    c = np.array([[0, 1, 2, 3, 4, 5], [3, 4, 5, 6, 7, 8]])
+    print(find_memberships_for_series(s, c))
+    print(fuzz.cmeans_predict(s, c, 2, 1e-8, 1e2)[0])
