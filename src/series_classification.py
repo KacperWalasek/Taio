@@ -31,7 +31,7 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
 
     """
 
-    available_cpus = os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count())
+    available_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count()))
 
     class_dirs = [
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
