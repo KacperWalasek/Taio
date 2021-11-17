@@ -9,8 +9,12 @@ from series_classifier import SeriesClassifier
 import read_data
 import cmeans_clustering
 
+available_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count()))
+
 if platform in ["linux", "linux2"]:
     from ray.util.multiprocessing import Pool
+    import ray
+    ray.init(num_cpus=available_cpus)
 else:
     from multiprocessing import Pool
 
@@ -30,8 +34,6 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
     SeriesClassifier
 
     """
-
-    available_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count()))
 
     class_dirs = [
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
