@@ -153,7 +153,7 @@ class BinaryClassifierModel:
 
         """
         if self.is_trained:
-            return
+            return self
         fitness_func = self._create_fitness_func()
         trained_array_size = (
             self._previous_considered_indices.size * self._concept_count
@@ -180,6 +180,7 @@ class BinaryClassifierModel:
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
         del self._membership_matrices
+        return self
 
     def predict(self, membership_matrix):
         """

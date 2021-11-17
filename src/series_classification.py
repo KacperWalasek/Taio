@@ -31,6 +31,8 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
 
     """
 
+    available_cpus = os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count())
+
     class_dirs = [
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
     ]
@@ -38,7 +40,7 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
     fun = functools.partial(
         _clustering, length_percent=length_percent, concept_count=concept_count
     )
-    with Pool() as p:
+    with Pool(min(available_cpus, len(class_dirs))) as p:
         class_models = p.map(fun, class_dirs)
 
     binary_classifier_models = []
@@ -59,12 +61,18 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
                     )
                 )
 
-    for model in binary_classifier_models:
-        model.train()
+    with Pool(min(available_cpus, len(binary_classifier_models))) as p:
+        binary_classifier_models = p.map(
+            _binary_model_train_wrapper, binary_classifier_models
+        )
 
     res = SeriesClassifier(class_models, binary_classifier_models)
     res.save("model.dat")
     return res
+
+
+def _binary_model_train_wrapper(model):
+    return model.train()
 
 
 def _clustering(class_dir, length_percent, concept_count):
