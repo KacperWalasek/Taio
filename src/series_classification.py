@@ -35,7 +35,9 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
     ]
 
-    fun = functools.partial(_clustering, length_percent=length_percent, concept_count = concept_count)
+    fun = functools.partial(
+        _clustering, length_percent=length_percent, concept_count=concept_count
+    )
     with Pool() as p:
         class_models = p.map(fun, class_dirs)
 

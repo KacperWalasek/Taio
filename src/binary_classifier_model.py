@@ -34,7 +34,7 @@ class BinaryClassifierModel:
             max_num_iteration=1000,
             population_size=1000,
             max_iteration_without_improv=100,
-            mutation_probability=0.05
+            mutation_probability=0.05,
         ),
     }
     _GA_RUN_PARAMS = {
@@ -152,6 +152,8 @@ class BinaryClassifierModel:
         None.
 
         """
+        if self.is_trained:
+            return
         fitness_func = self._create_fitness_func()
         trained_array_size = (
             self._previous_considered_indices.size * self._concept_count
@@ -168,11 +170,13 @@ class BinaryClassifierModel:
         ga_model.run(
             stop_when_reached=0,
             **self._GA_RUN_PARAMS,
-            set_function= ga.set_function_multiprocess(fitness_func)
         )
 
         solution = ga_model.output_dict["variable"]
-        print(f"Best solution fitness for classifier {self.class_numbers}: {ga_model.output_dict['function']}")
+        print(
+            f"Best solution fitness for classifier {self.class_numbers}:"
+            f"{ga_model.output_dict['function']}"
+        )
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
         del self._membership_matrices
