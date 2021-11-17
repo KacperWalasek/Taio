@@ -31,7 +31,10 @@ class BinaryClassifierModel:
     _GA_PARAMS = {
         "variable_type": "real",
         "algorithm_parameters": AlgorithmParams(
-            max_num_iteration=5, population_size=20, max_iteration_without_improv=200
+            max_num_iteration=1000,
+            population_size=1000,
+            max_iteration_without_improv=100,
+            mutation_probability=0.05
         ),
     }
     _GA_RUN_PARAMS = {
@@ -169,7 +172,7 @@ class BinaryClassifierModel:
         )
 
         solution = ga_model.output_dict["variable"]
-        print(f"Best solution fitness (SSE): {ga_model.output_dict['function']}")
+        print(f"Best solution fitness for classifier {self.class_numbers}: {ga_model.output_dict['function']}")
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
         del self._membership_matrices

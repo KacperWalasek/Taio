@@ -55,7 +55,7 @@ class TestCase:
 
 if __name__ == "__main__":
     tests = []
-    tests.append(TestCase(1, [1, 2], 1, 2))
+    tests.append(TestCase(1, [1, 2, 3, 4, 5, 6], 1, 15))
 
     for test in tests:
         test.run()

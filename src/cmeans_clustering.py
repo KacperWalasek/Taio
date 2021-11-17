@@ -51,7 +51,7 @@ def _cmeans_wrapper(coordinates, concept_count):
     """
     m = 2
     error = 1e-8
-    maxiter = 1e2
+    maxiter = 1e6
     ret = fuzz.cmeans(coordinates, concept_count, m, error, maxiter)
     return (
         ret[0],
@@ -133,6 +133,6 @@ if __name__ == "__main__":
             [6, 6, 7, 6],
         ]
     )
-    c = np.array([[0, 1, 2, 3, 4, 5], np.r_[1:7]])
+    c = np.array([[0, 1, 2, 3, 4, 5], np.r_[2:8]])
     print(_find_memberships_for_series(s, c))
     print(fuzz.cmeans_predict(s, c, 2, 1e-8, 1e2)[0])
