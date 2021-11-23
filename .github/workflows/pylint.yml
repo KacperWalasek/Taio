@@ -20,5 +20,5 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=too-many-arguments --disable=too-many-attributes --good-names-rgxs="^[a-z]$" `find . -name "*.py"`
+        pylint --disable=too-many-arguments --disable=too-many-instance-attributes --disable=too-many-attributes --good-names-rgxs="^[a-z]$" `find . -name "*.py"`
 
