@@ -26,7 +26,7 @@ def process_data(file, length_percent):
 
     data = data[: int(length_percent * data.shape[0])]
 
-    return data.T
+    return np.atleast_2d(data.T)
 
 
 def _delete_redundant_rows(data):
