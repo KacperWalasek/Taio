@@ -98,5 +98,5 @@ if __name__ == "__main__":
 
     for test in tests:
         test.run()
-        print("Train result: ", test.get_train_result())
-        print("Test result: ", test.get_test_result())
+        print("Train result: ", test.get_train_result(), flush = True)
+        print("Test result: ", test.get_test_result(), flush = True)
