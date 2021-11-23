@@ -21,7 +21,7 @@ class SeriesClassifier:
     """
 
     def __init__(self, class_models, binary_classifiers):
-        self.class_models = list(map(lambda x: (x[0],x[2][0]),class_models))
+        self.class_models = list(map(lambda x: (x[0], x[2][0]), class_models))
         self._binary_classifiers = binary_classifiers
 
     def predict(self, series_list):
@@ -47,11 +47,13 @@ class SeriesClassifier:
 
         for class_model in self.class_models:
             membership_list = cmeans.find_memberships(series_list, class_model[1])
-            current_class_binary_classifiers = list(filter(
-                lambda x, class_number=class_model[0]: x.class_numbers[0]
-                == class_number,
-                self._binary_classifiers,
-            ))
+            current_class_binary_classifiers = list(
+                filter(
+                    lambda x, class_number=class_model[0]: x.class_numbers[0]
+                    == class_number,
+                    self._binary_classifiers,
+                )
+            )
             for series_idx, membership_matrix in enumerate(membership_list):
                 for binary_classifier in current_class_binary_classifiers:
                     predicted_class, output_weights = binary_classifier.predict(
@@ -83,10 +85,34 @@ class SeriesClassifier:
         return result
 
     def save(self, filename):
+        """
+        Save file.
+
+        Parameters
+        ----------
+        filename : string
+
+        Returns
+        -------
+        None.
+
+        """
         with open(filename, "wb") as file:
             pickle.dump(self, file, protocol=min(4, pickle.HIGHEST_PROTOCOL))
 
     @classmethod
     def load(cls, filename):
+        """
+        Load file.
+
+        Parameters
+        ----------
+        filename : string
+
+        Returns
+        -------
+        object
+
+        """
         with open(filename, "rb") as file:
             return pickle.load(file)

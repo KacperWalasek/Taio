@@ -1,6 +1,7 @@
 """
 BinaryClassifierModel model (2 classification classes).
 """
+
 import numpy as np
 from geneticalgorithm2 import geneticalgorithm2 as ga
 from geneticalgorithm2 import AlgorithmParams
@@ -235,4 +236,4 @@ if __name__ == "__main__":
     ):
         print("OK")
     else:
-        print("NIE OK")
+        print("NOT OK")

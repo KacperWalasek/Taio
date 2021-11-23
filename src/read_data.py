@@ -2,6 +2,7 @@
 Module for reading data from CSV file,
 deleting first and last redundant rows.
 """
+
 import numpy as np
 
 

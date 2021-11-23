@@ -12,8 +12,17 @@ def preprocess_data(name, nr_of_coordinates):
     """
     Preprocess data delivered in *.arff format.
 
-    name - name of dataset
-    nr_of_coordinates - number of dimensions in time series data
+    Parameters
+    ----------
+    name : string
+        name of dataset
+    nr_of_coordinates : int
+        number of dimensions in time series data
+
+    Returns
+    -------
+    None.
+
     """
 
     _preprocess_data_to_single_directory(
@@ -26,10 +35,21 @@ def _preprocess_data_to_single_directory(name, suffix, directory, nr_of_coordina
     """
     Preprocess data delivered in *.arff format.
 
-    name - name of dataset
-    suffix - suffix of *.arff file to be considered
-    directory - name of directory to create and put CSV files into
-    nr_of_coordinates - number of dimensions in time series data
+    Parameters
+    ----------
+    name : string
+        name of dataset
+    suffix : string
+        suffix of *.arff file to be considered
+    directory : string
+        name of directory to create and put CSV files into
+    nr_of_coordinates : int
+        number of dimensions in time series data
+
+    Returns
+    -------
+    None.
+
     """
 
     if os.path.exists(directory):
@@ -65,4 +85,4 @@ def _preprocess_data_to_single_directory(name, suffix, directory, nr_of_coordina
         np.savetxt(file_path, file_data, delimiter=",")
 
 
-preprocess_data("Crop", 1)
+# preprocess_data("Crop", 1)
