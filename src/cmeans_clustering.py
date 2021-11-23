@@ -155,11 +155,15 @@ def find_memberships(series_list, centroids):
 
     """
 
-    predict_fun = functools.partial(_find_memberships_for_series, centroids=centroids)
+    #predict_fun = functools.partial(_find_memberships_for_series, centroids=centroids)
     with_diffs = _include_diffs(series_list)
 
-    memberships = list(map(predict_fun, with_diffs))
-    return memberships
+    #memberships = list(map(predict_fun, with_diffs))
+    predict_fun = functools.partial(
+        fuzz.cmeans_predict, cntr_trained=centroids, m=2, error=1e-8, maxiter=1e2
+    )
+
+    return [x[0].T for x in map(predict_fun, with_diffs)]
 
 
 if __name__ == "__main__":
@@ -173,6 +177,12 @@ if __name__ == "__main__":
             [6, 6, 7, 6],
         ]
     )
-    mainC = np.array([[0, 1, 2, 3, 4, 5], np.r_[2:8]])
-    print(_find_memberships_for_series(mainS, mainC))
-    print(fuzz.cmeans_predict(mainS, mainC, 2, 1e-8, 1e2)[0])
+    res = fuzz.cmeans(mainS, 2, 2, 1e-8, 1e2)
+    centroids, membership = res[0], res[1]
+    print(centroids)
+    print(membership.T)
+    #centroids = np.array([[0, 1, 2, 3, 4, 5], np.r_[2:8]])
+    print(_find_memberships_for_series(mainS, centroids))
+    print(fuzz.cmeans_predict(mainS, centroids, 2, 1e-8, 1e2)[0].T)
+    print(np.array_equal(_find_memberships_for_series(mainS, centroids), membership.T))
+    print(np.array_equal(fuzz.cmeans_predict(mainS, centroids, 2, 1, 2)[0].T, membership.T))
