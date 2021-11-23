@@ -1,6 +1,7 @@
 """
 BinaryClassifierModel model (2 classification classes).
 """
+
 import numpy as np
 from geneticalgorithm2 import geneticalgorithm2 as ga
 from geneticalgorithm2 import AlgorithmParams
@@ -174,8 +175,9 @@ class BinaryClassifierModel:
 
         solution = ga_model.output_dict["variable"]
         print(
-            f"Best solution fitness for classifier {self.class_numbers}:"
-            f"{ga_model.output_dict['function']}"
+            f"Fraction of misclassified series for classifier {self.class_numbers}:"
+            f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
+            flush=True,
         )
         self._uwv_matrices = self._split_uwv_array(solution)
         self.is_trained = True
@@ -235,4 +237,4 @@ if __name__ == "__main__":
     ):
         print("OK")
     else:
-        print("NIE OK")
+        print("NOT OK")

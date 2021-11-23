@@ -21,7 +21,7 @@ class SeriesClassifier:
     """
 
     def __init__(self, class_models, binary_classifiers):
-        self.class_models = list(map(lambda x: (x[0],x[2][0]),class_models))
+        self.class_models = list(map(lambda x: (x[0], x[2][0]), class_models))
         self._binary_classifiers = binary_classifiers
 
     def predict(self, series_list):
@@ -45,28 +45,32 @@ class SeriesClassifier:
         )
         series_class_weights = np.zeros((len(series_list), len(self.class_models)))
 
-        for class_model in self.class_models:
+        for class_idx, class_model in enumerate(self.class_models):
             membership_list = cmeans.find_memberships(series_list, class_model[1])
-            current_class_binary_classifiers = list(filter(
-                lambda x, class_number=class_model[0]: x.class_numbers[0]
-                == class_number,
-                self._binary_classifiers,
-            ))
+            current_class_binary_classifiers = list(
+                filter(
+                    lambda x, class_idx=class_idx: x.class_numbers[0] == class_idx,
+                    self._binary_classifiers,
+                )
+            )
             for series_idx, membership_matrix in enumerate(membership_list):
                 for binary_classifier in current_class_binary_classifiers:
-                    predicted_class, output_weights = binary_classifier.predict(
+                    predicted_class_idx, output_weights = binary_classifier.predict(
                         membership_matrix
                     )
-                    series_class_votes[series_idx, predicted_class - 1] += 1
+                    series_class_votes[series_idx, predicted_class_idx] += 1
                     series_class_weights[
-                        series_idx, np.subtract(binary_classifier.class_numbers, 1)
+                        series_idx, binary_classifier.class_numbers
                     ] += output_weights
 
-        return self._prepare_result(series_class_votes, series_class_weights)
+        result_indices = self._prepare_result_indices(
+            series_class_votes, series_class_weights
+        )
+        return np.array([x[0] for x in self.class_models])[result_indices]
 
     @staticmethod
-    def _prepare_result(series_class_votes, series_class_weights):
-        result = np.argmax(series_class_votes, axis=1)
+    def _prepare_result_indices(series_class_votes, series_class_weights):
+        result_indices = np.argmax(series_class_votes, axis=1)
 
         max_entries_in_row = (
             series_class_votes == series_class_votes.max(axis=1)[:, np.newaxis]
@@ -77,16 +81,41 @@ class SeriesClassifier:
         # in total has greater sum of weights than classes with max number of votes.
         series_class_weights[np.logical_not(max_entries_in_row)] = -1
 
-        result[ambiguous_rows] = np.argmax(series_class_weights[ambiguous_rows], axis=1)
-        result = result + 1
+        result_indices[ambiguous_rows] = np.argmax(
+            series_class_weights[ambiguous_rows], axis=1
+        )
 
-        return result
+        return result_indices
 
     def save(self, filename):
+        """
+        Save file.
+
+        Parameters
+        ----------
+        filename : string
+
+        Returns
+        -------
+        None.
+
+        """
         with open(filename, "wb") as file:
             pickle.dump(self, file, protocol=min(4, pickle.HIGHEST_PROTOCOL))
 
     @classmethod
     def load(cls, filename):
+        """
+        Load file.
+
+        Parameters
+        ----------
+        filename : string
+
+        Returns
+        -------
+        object
+
+        """
         with open(filename, "rb") as file:
             return pickle.load(file)

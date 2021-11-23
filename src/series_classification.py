@@ -1,6 +1,7 @@
 """
 Train and test functions.
 """
+
 import os
 import functools
 from sys import platform
@@ -47,15 +48,15 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
 
     binary_classifier_models = []
 
-    for model1 in class_models:
-        for model2 in class_models:
+    for model1_idx, model1 in enumerate(class_models):
+        for model2_idx, model2 in enumerate(class_models):
             if model1 != model2:
                 model2_memberships = cmeans_clustering.find_memberships(
                     model2[1], model1[2][0]
                 )
                 binary_classifier_models.append(
                     BinaryClassifierModel(
-                        (model1[0], model2[0]),
+                        (model1_idx, model2_idx),
                         (model1[2][1], model2_memberships),
                         model1[2][0],
                         previous_considered_indices,
@@ -84,7 +85,7 @@ def _clustering(class_dir, length_percent, concept_count):
             series_list.append(read_data.process_data(file.path, length_percent))
 
     return (
-        int(class_dir[0]),
+        class_dir[0],
         series_list,
         cmeans_clustering.find_clusters(series_list, concept_count),
     )
@@ -112,7 +113,7 @@ def test(dir_path, length_percent, series_classifier):
         for file in os.scandir(class_dir.path):
             if file.name.endswith(".csv"):
                 series_list.append(read_data.process_data(file.path, length_percent))
-                class_list.append(int(class_dir.name))
+                class_list.append(class_dir.name)
 
     predicted_classes = series_classifier.predict(series_list)
 

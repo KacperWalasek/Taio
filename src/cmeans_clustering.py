@@ -10,11 +10,16 @@ import skfuzzy as fuzz
 
 def _include_diffs(series_list):
     """
-    series_list (nr_of_series, 3, series_len)
+    Parameters
+    ----------
+    series_list : list
+        (nr_of_series, nr_of_coordinates, series_len)
 
-    returns:
-    combined_coordinates_list (nr_of_series, 6, series_len)
-    lengths (nr_of_series)
+    Returns
+    -------
+    list
+        (nr_of_series, 2 * nr_of_coordinates, series_len)
+
     """
     combined_coordinates_list = []
     for series in series_list:
@@ -29,11 +34,18 @@ def _include_diffs(series_list):
 
 def _accumulate_series(series_list):
     """
-    series_list (nr_of_series, 3, series_len)
+    Parameters
+    ----------
+    series_list : list
+        (nr_of_series, nr_of_coordinates, series_len)
 
-    returns:
-    horizontal_combined_coordinates (6, sum_of_series_len)
-    lengths (nr_of_series)
+    Returns
+    -------
+    numpy.ndarray
+        (2 * nr_of_coordinates, sum_of_series_len)
+    list
+        (nr_of_series)
+
     """
     combined_coordinates_list = _include_diffs(series_list)
     lengths = [x.shape[1] for x in combined_coordinates_list]
@@ -44,10 +56,17 @@ def _accumulate_series(series_list):
 
 def _cmeans_wrapper(coordinates, concept_count):
     """
-    coordinates ( 6, sum_of_series_len)
+    Parameters
+    ----------
+    coordinates : numpy.ndarray
+        (2 * nr_of_coordinates, sum_of_series_len)
+    concept_count : int
 
-    returns:
-    tuple((concept_count, 6), (sum_of_series_len,concept_count))
+    Returns
+    -------
+    tuple
+        ((concept_count, 2 * nr_of_coordinates), (sum_of_series_len, concept_count))
+
     """
     m = 2
     error = 1e-8
@@ -61,11 +80,19 @@ def _cmeans_wrapper(coordinates, concept_count):
 
 def find_clusters(series_list, concept_count):
     """
-    series_list (nr_of_series, 3, series_len)
+    Parameters
+    ----------
+    series_list : list
+        (nr_of_series, nr_of_coordinates, series_len)
+    concept_count : int
 
-    returns:
-    clusters (concept_count, 6)
-    series_memberships (nr_of_series, series_len, concept_count)
+    Returns
+    -------
+    list
+        (concept_count, 2 * nr_of_coordinates)
+    list
+        (nr_of_series, series_len, concept_count)
+
     """
     horizontal_combined_coordinates, lengths = _accumulate_series(series_list)
     clusters, memberships_combined = _cmeans_wrapper(
@@ -80,11 +107,18 @@ def _find_memberships_for_series(series, centroids):
     """
     Get memberships for single time series.
 
-    series (6, series_len)
-    centroids (concept_count, 6)
+    Parameters
+    ----------
+    series : numpy.ndarray
+        (2 * nr_of_coordinates, series_len)
+    centroids : numpy.ndarray
+        (concept_count, 2 * nr_of_coordinates)
 
-    returns:
-    ndarray (series_len, concept_count)
+    Returns
+    -------
+    numpy.ndarray
+        (series_len, concept_count)
+
     """
 
     series = series.T
@@ -107,12 +141,18 @@ def _find_memberships_for_series(series, centroids):
 
 def find_memberships(series_list, centroids):
     """
-    series_list (nr_of_series, 3, series_len)
-    centroids - 2d numpy.ndarray with centroids
+    Parameters
+    ----------
+    series_list : list
+        (nr_of_series, nr_of_coordinates, series_len)
+    centroids : numpy.ndarray
+        centroids
 
-    returns:
-    list of 2d numpy.ndarray
-    (nr_of_series, series_len, concept_count)
+    Returns
+    -------
+    list
+        (nr_of_series, series_len, concept_count)
+
     """
 
     predict_fun = functools.partial(_find_memberships_for_series, centroids=centroids)
@@ -123,7 +163,7 @@ def find_memberships(series_list, centroids):
 
 
 if __name__ == "__main__":
-    s = np.array(
+    mainS = np.array(
         [
             [1, 1, 2, 1],
             [2, 2, 3, 2],
@@ -133,6 +173,6 @@ if __name__ == "__main__":
             [6, 6, 7, 6],
         ]
     )
-    c = np.array([[0, 1, 2, 3, 4, 5], np.r_[2:8]])
-    print(_find_memberships_for_series(s, c))
-    print(fuzz.cmeans_predict(s, c, 2, 1e-8, 1e2)[0])
+    mainC = np.array([[0, 1, 2, 3, 4, 5], np.r_[2:8]])
+    print(_find_memberships_for_series(mainS, mainC))
+    print(fuzz.cmeans_predict(mainS, mainC, 2, 1e-8, 1e2)[0])
