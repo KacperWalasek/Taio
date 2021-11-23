@@ -70,7 +70,6 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
         )
 
     res = SeriesClassifier(class_models, binary_classifier_models)
-    res.save("model.dat")
     return res
 
 

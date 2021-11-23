@@ -4,7 +4,7 @@ Module with test cases.
 
 import os
 import series_classification
-
+import sys
 
 class TestCase:
     """
@@ -21,7 +21,7 @@ class TestCase:
     """
 
     def __init__(
-        self, length_percent, previous_considered_indices, move, concept_count=12
+        self, length_percent, previous_considered_indices, move, concept_count
     ):
         self._length_percent = length_percent
         self._previous_considered_indices = previous_considered_indices
@@ -30,7 +30,7 @@ class TestCase:
         self._test_result = 0
         self._concept_count = concept_count
 
-    def run(self):
+    def run(self, series_dir, run_id):
         """
         Run train and test functions.
 
@@ -44,19 +44,20 @@ class TestCase:
 
         """
         series_classifier = series_classification.train(
-            os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
+            os.path.join(series_dir, "Train"),
             self._length_percent,
             self._previous_considered_indices,
             self._move,
             self._concept_count,
         )
+        series_classifier.save(f"{series_name}_model{run_id}.dat")
         self._train_result = series_classification.test(
-            os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
+            os.path.join(series_dir, "Train"),
             self._length_percent,
             series_classifier,
         )
         self._test_result = series_classification.test(
-            os.path.join("UWaveGestureLibrary_Preprocessed", "Test"),
+            os.path.join(series_dir, "Test"),
             self._length_percent,
             series_classifier,
         )
@@ -93,10 +94,15 @@ class TestCase:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        raise RuntimeError("Too few arguments")
+    series_name = sys.argv[1]
+
     tests = []
     tests.append(TestCase(1, [1, 2, 3, 4, 5, 6], 1, 15))
 
-    for test in tests:
-        test.run()
+    for test_id, test in enumerate(tests):
+        test.run(os.path.join("tests", series_name), test_id)
+        print(series_name)
         print("Train result: ", test.get_train_result(), flush = True)
         print("Test result: ", test.get_test_result(), flush = True)
