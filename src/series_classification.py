@@ -15,7 +15,7 @@ available_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count()))
 if platform in ["linux", "linux2"]:
     from ray.util.multiprocessing import Pool
     import ray
-    ray.init(num_cpus=available_cpus)
+    ray.init(num_cpus=available_cpus, ignore_reinit_error=True)
 else:
     from multiprocessing import Pool
 

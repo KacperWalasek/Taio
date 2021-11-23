@@ -8,8 +8,16 @@ for series_data_dir in os.scandir("tests"):
         class_count = sum(
             1 for x in os.scandir(next(os.scandir(series_data_dir)).path) if x.is_dir()
         )
+        if class_count > 6:
+            cpus = 8
+        elif class_count > 4:
+            cpus = 4
+        elif class_count > 2:
+            cpus = 2
+        else:
+            cpus = 1
         formatted_template = template.format(
-            cpus=min(class_count * (class_count - 1), 128), name=series_data_dir.name
+            cpus=cpus, name=series_data_dir.name
         )
         with open(f"start_{series_data_dir.name}", "w") as file:
             file.write(formatted_template)

@@ -160,7 +160,7 @@ def find_memberships(series_list, centroids):
 
     #memberships = list(map(predict_fun, with_diffs))
     predict_fun = functools.partial(
-        fuzz.cmeans_predict, cntr_trained=centroids, m=2, error=1e-8, maxiter=1e2
+        fuzz.cmeans_predict, cntr_trained=centroids, m=2, error=1e-8, maxiter=2
     )
 
     return [x[0].T for x in map(predict_fun, with_diffs)]
