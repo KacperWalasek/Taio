@@ -2,6 +2,7 @@
 Module with test cases.
 """
 
+import sys
 import os
 import series_classification
 
@@ -30,36 +31,41 @@ class TestCase:
         self._test_result = 0
         self._concept_count = concept_count
 
-    def run(self):
+    def run(self, series_dir, run_id):
         """
         Run train and test functions.
 
         Parameters
         ----------
-        None.
+        series_dir : string
+        run_id : int
 
         Returns
         -------
         None.
 
         """
+        current_dir = os.getcwd()
+        os.chdir(series_dir)
         series_classifier = series_classification.train(
-            os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
+            "Train",
             self._length_percent,
             self._previous_considered_indices,
             self._move,
             self._concept_count,
         )
+        series_classifier.save(f"{series_dir}_model{run_id}.dat")
         self._train_result = series_classification.test(
-            os.path.join("UWaveGestureLibrary_Preprocessed", "Train"),
+            "Train",
             self._length_percent,
             series_classifier,
         )
         self._test_result = series_classification.test(
-            os.path.join("UWaveGestureLibrary_Preprocessed", "Test"),
+            "Test",
             self._length_percent,
             series_classifier,
         )
+        os.chdir(current_dir)
 
     def get_train_result(self):
         """
@@ -93,10 +99,17 @@ class TestCase:
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) < 2:
+        raise RuntimeError("Too few arguments")
+
+    series_name = sys.argv[1]
+
     tests = []
     tests.append(TestCase(1, [1, 2, 3, 4, 5, 6], 1, 15))
 
-    for test in tests:
-        test.run()
-        print("Train result: ", test.get_train_result(), flush = True)
-        print("Test result: ", test.get_test_result(), flush = True)
+    for test_id, test in enumerate(tests):
+        test.run(series_name, test_id)
+        print(series_name)
+        print("Train result: ", test.get_train_result(), flush=True)
+        print("Test result: ", test.get_test_result(), flush=True)

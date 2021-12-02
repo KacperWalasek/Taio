@@ -2,6 +2,7 @@
 Preprocess data delivered in *.arff format.
 """
 
+import sys
 import os
 from shutil import rmtree
 from scipy.io.arff import loadarff
@@ -25,6 +26,7 @@ def preprocess_data(name, nr_of_coordinates):
 
     """
 
+    os.chdir(name)
     _preprocess_data_to_single_directory(
         name, "_TRAIN.arff", "Train", nr_of_coordinates
     )
@@ -85,4 +87,8 @@ def _preprocess_data_to_single_directory(name, suffix, directory, nr_of_coordina
         np.savetxt(file_path, file_data, delimiter=",")
 
 
-# preprocess_data("Crop", 1)
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        raise RuntimeError("Too few arguments")
+
+    preprocess_data(sys.argv[1], int(sys.argv[2]))

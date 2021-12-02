@@ -69,9 +69,7 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
             _binary_model_train_wrapper, binary_classifier_models
         )
 
-    res = SeriesClassifier(class_models, binary_classifier_models)
-    res.save("model.dat")
-    return res
+    return SeriesClassifier(class_models, binary_classifier_models)
 
 
 def _binary_model_train_wrapper(model):
