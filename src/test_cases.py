@@ -54,7 +54,8 @@ class TestCase:
             self._move,
             self._concept_count,
         )
-        series_classifier.save(f"{series_dir}_model{run_id}.dat")
+        name = os.path.basename(os.path.normpath(series_dir))
+        series_classifier.save(f"{name}_model{run_id}.dat")
         self._train_result = series_classification.test(
             "Train",
             self._length_percent,
