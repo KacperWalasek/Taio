@@ -22,6 +22,8 @@ def process_data(file, length_percent):
 
     data = np.genfromtxt(file, delimiter=",")
 
+    data = data[~np.isnan(data).any(axis=1)]
+
     data = _delete_redundant_rows(data)
 
     data = data[: int(length_percent * data.shape[0])]
