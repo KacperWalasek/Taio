@@ -84,6 +84,12 @@ class BinaryClassifierModel:
             - self._previous_considered_indices
         )
 
+        if input_indices.size == 0:
+            raise RuntimeError(
+                "Specified previous_considered_indices array too large for given dataset"
+                f" - one of the series has {membership_matrix.shape[0]} elements"
+            )
+
         # Now we compute matrix containing a-values for each target.
         # The number of columns is equal to concept_count (each target element
         # corresponds to single row which contains a-value for each concept).
