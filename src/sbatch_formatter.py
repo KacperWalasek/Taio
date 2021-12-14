@@ -1,6 +1,10 @@
+"""
+Module for creating sbatch files for SLURM.
+"""
+
 import os
 
-with open("start_template", "r") as file:
+with open("start_template", "r", encoding='UTF-8') as file:
     template = file.read()
 
 for series_data_dir in os.scandir("tests"):
@@ -9,15 +13,15 @@ for series_data_dir in os.scandir("tests"):
             1 for x in os.scandir(next(os.scandir(series_data_dir)).path) if x.is_dir()
         )
         if class_count > 6:
-            cpus = 8
+            CPUS = 8
         elif class_count > 4:
-            cpus = 4
+            CPUS = 4
         elif class_count > 2:
-            cpus = 2
+            CPUS = 2
         else:
-            cpus = 1
+            CPUS = 1
         formatted_template = template.format(
-            cpus=cpus, name=series_data_dir.name
+            cpus=CPUS, name=series_data_dir.name
         )
-        with open(f"start_{series_data_dir.name}", "w") as file:
+        with open(f"start_{series_data_dir.name}", "w", encoding='UTF-8') as file:
             file.write(formatted_template)
