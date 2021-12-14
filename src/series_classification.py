@@ -15,18 +15,18 @@ available_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count()))
 if platform in ["linux", "linux2"]:
     from ray.util.multiprocessing import Pool
     import ray
-    ray.init(num_cpus=available_cpus, ignore_reinit_error=True)
+
+    if not ray.is_initialized():
+        ray.init(num_cpus=available_cpus)
 else:
     from multiprocessing import Pool
 
 
-def train(dir_path, length_percent, previous_considered_indices, move, concept_count):
+def train(dir_path, previous_considered_indices, move, concept_count):
     """
     Parameters
     ----------
     dir_path : string
-    length_percent : number
-        [0, 1]
     previous_considered_indices : list
     move : int
 
@@ -40,12 +40,24 @@ def train(dir_path, length_percent, previous_considered_indices, move, concept_c
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
     ]
 
-    fun = functools.partial(
-        _clustering, length_percent=length_percent, concept_count=concept_count
-    )
+    fun = functools.partial(_read_and_cluster_class_series, concept_count=concept_count)
     with Pool(min(available_cpus, len(class_dirs))) as p:
         class_models = p.map(fun, class_dirs)
 
+    too_short_series = next(
+        (
+            (series, class_model[0])
+            for class_model in class_models
+            for series in class_model[1]
+            if series.shape[1] < max(previous_considered_indices) + 1
+        ),
+        None,
+    )
+    if too_short_series is not None:
+        raise RuntimeError(
+            "Specified previous_considered_indices array invalid for given dataset"
+            f" - one of the series in class {too_short_series[1]} has only {too_short_series[0].shape[1]} elements"
+        )
     binary_classifier_models = []
 
     for model1_idx, model1 in enumerate(class_models):
@@ -77,11 +89,11 @@ def _binary_model_train_wrapper(model):
     return model.train()
 
 
-def _clustering(class_dir, length_percent, concept_count):
+def _read_and_cluster_class_series(class_dir, concept_count):
     series_list = []
     for file in os.scandir(class_dir[1]):
         if file.name.endswith(".csv"):
-            series_list.append(read_data.process_data(file.path, length_percent))
+            series_list.append(read_data.process_data(file.path, 1))
 
     return (
         class_dir[0],

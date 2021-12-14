@@ -2,18 +2,19 @@
 Module with test cases.
 """
 
+import sys
 import os
 import series_classification
-import sys
 
-class TestCase:
+
+class TestCase:  # pylint: disable=too-few-public-methods
     """
     TestCase class.
 
     Parameters
     ----------
-    length_percent : number
-        [0, 1]
+    length_percent : list
+        list of numbers from range [0, 1]
     previous_considered_indices : list
     move : int
     concept_count : int
@@ -21,16 +22,14 @@ class TestCase:
     """
 
     def __init__(
-        self, length_percent, previous_considered_indices, move, concept_count
+        self, length_percentages, previous_considered_indices, move, concept_count
     ):
-        self._length_percent = length_percent
+        self._length_percentages = length_percentages
         self._previous_considered_indices = previous_considered_indices
         self._move = move
-        self._train_result = 0
-        self._test_result = 0
         self._concept_count = concept_count
 
-    def run(self, series_dir, run_id):
+    def run(self, dataset_dir, run_id):
         """
         Run train and test functions.
 
@@ -44,65 +43,49 @@ class TestCase:
 
         """
         series_classifier = series_classification.train(
-            os.path.join(series_dir, "Train"),
-            self._length_percent,
+            os.path.join(dataset_dir, "Train"),
             self._previous_considered_indices,
             self._move,
             self._concept_count,
         )
-        series_classifier.save(f"{series_name}_model{run_id}.dat")
-        self._train_result = series_classification.test(
-            os.path.join(series_dir, "Train"),
-            self._length_percent,
-            series_classifier,
+        name = os.path.basename(os.path.normpath(dataset_dir))
+        series_classifier.save(f"{name}_model{run_id}.dat")
+        for length_percent in self._length_percentages:
+            train_result = series_classification.test(
+                os.path.join(dataset_dir, "Train"),
+                length_percent,
+                series_classifier,
+            )
+            self._print_result(train_result, f"{name} Train", length_percent, run_id)
+            test_result = series_classification.test(
+                os.path.join(dataset_dir, "Test"),
+                length_percent,
+                series_classifier,
+            )
+            self._print_result(test_result, f"{name} Test", length_percent, run_id)
+
+    def _print_result(self, result, series_info, length_percent, run_id):
+        print("-" * 20)
+        print(
+            f"{series_info} result: {result}",
+            f"Length percent: {length_percent}",
+            f"Previous considered indices: {self._previous_considered_indices}",
+            f"Move: {self._move}",
+            f"Concept count: {self._concept_count}",
+            f"Run id: {run_id}",
+            sep="\n",
+            flush=True,
         )
-        self._test_result = series_classification.test(
-            os.path.join(series_dir, "Test"),
-            self._length_percent,
-            series_classifier,
-        )
-
-    def get_train_result(self):
-        """
-        Get result of train test case.
-
-        Parameters
-        ----------
-        None.
-
-        Returns
-        -------
-        number
-
-        """
-        return self._train_result
-
-    def get_test_result(self):
-        """
-        Get result of test test case.
-
-        Parameters
-        ----------
-        None.
-
-        Returns
-        -------
-        number
-
-        """
-        return self._test_result
+        print("-" * 20)
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        raise RuntimeError("Too few arguments")
-    series_name = sys.argv[1]
+        raise RuntimeError("Too few arguments, dataset directory path is missing")
+    data_dir = sys.argv[1]
 
     tests = []
-    tests.append(TestCase(1, [1, 2, 3, 4, 5, 6], 1, 15))
+    tests.append(TestCase([1, 0.8], [1, 2, 3], 1, 3))
 
     for test_id, test in enumerate(tests):
-        test.run(os.path.join("tests", series_name), test_id)
-        print(series_name)
-        print("Train result: ", test.get_train_result(), flush = True)
-        print("Test result: ", test.get_test_result(), flush = True)
+        test.run(data_dir, test_id)

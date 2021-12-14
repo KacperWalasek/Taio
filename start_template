@@ -6,4 +6,4 @@
 
 source /home2/faculty/pwesolowski/.pyenv/versions/venv/bin/activate
 
-python src/test_cases.py {name}
+python src/test_cases.py tests/{name}

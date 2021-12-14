@@ -33,7 +33,7 @@ class BinaryClassifierModel:
         "variable_type": "real",
         "algorithm_parameters": AlgorithmParams(
             max_num_iteration=1000,
-            population_size=1000,
+            population_size=600,
             max_iteration_without_improv=50,
             mutation_probability=0.05,
         ),
@@ -86,7 +86,7 @@ class BinaryClassifierModel:
 
         if input_indices.size == 0:
             raise RuntimeError(
-                "Specified previous_considered_indices array too large for given dataset"
+                "Specified previous_considered_indices array invalid for given dataset"
                 f" - one of the series has {membership_matrix.shape[0]} elements"
             )
 
