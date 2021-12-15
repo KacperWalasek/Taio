@@ -87,7 +87,10 @@ class BinaryClassifierModel:
         if input_indices.size == 0:
             raise RuntimeError(
                 "Specified previous_considered_indices array invalid for given dataset"
-                f" - one of the series has {membership_matrix.shape[0]} elements"
+                " - one of the series after prepocessing with read_data module"
+                f" has {membership_matrix.shape[0] + 1} elements."
+                " Remember that c-means processed series has one element less"
+                " due to adding adjacent differences to points (the first one is discarded)."
             )
 
         # Now we compute matrix containing a-values for each target.

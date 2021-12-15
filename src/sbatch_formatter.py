@@ -1,5 +1,5 @@
 """
-Module for creating sbatch files for SLURM.
+Script for creating sbatch files for SLURM.
 """
 
 import os
