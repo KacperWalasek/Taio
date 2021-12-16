@@ -1,7 +1,6 @@
 numpy
 black
 pylint
-scikit-learn
 scikit-fuzzy==0.4.2
 ray
 geneticalgorithm2
