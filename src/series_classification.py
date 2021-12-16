@@ -49,7 +49,7 @@ def train(dir_path, previous_considered_indices, move, concept_count):
             (series, class_model[0])
             for class_model in class_models
             for series in class_model[1]
-            if series.shape[1] < max(previous_considered_indices) + 1
+            if series.shape[1] < max(previous_considered_indices) + 2
         ),
         None,
     )
@@ -58,7 +58,7 @@ def train(dir_path, previous_considered_indices, move, concept_count):
             "Specified previous_considered_indices array invalid for given dataset"
             f" - one of the series in class {too_short_series[1]}"
             " after preprocessing with read_data module has only"
-            f" {too_short_series[0].shape[1] + 1} elements."
+            f" {too_short_series[0].shape[1]} elements."
             " Remember that c-means processed series has one element less"
             " due to adding adjacent differences to points (the first one is discarded)."
         )
