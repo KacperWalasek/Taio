@@ -33,7 +33,7 @@ class BinaryClassifierModel:
         "variable_type": "real",
         "algorithm_parameters": AlgorithmParams(
             max_num_iteration=1000,
-            population_size=600,
+            population_size=800,
             max_iteration_without_improv=50,
             mutation_probability=0.05,
         ),
