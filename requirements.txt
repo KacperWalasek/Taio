@@ -2,5 +2,5 @@ numpy
 black
 pylint
 scikit-fuzzy==0.4.2
-ray
 geneticalgorithm2
+ray ; sys_platform == 'linux' or sys_platform == 'linux2'
