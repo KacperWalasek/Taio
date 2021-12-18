@@ -10,7 +10,12 @@ from series_classifier import SeriesClassifier
 import read_data
 import cmeans_clustering
 
-available_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count()))
+available_cpus = (
+    int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
+    if "SLURM_JOB_ID" in os.environ
+    else os.cpu_count()
+)
+
 
 if platform in ["linux", "linux2"]:
     from ray.util.multiprocessing import Pool

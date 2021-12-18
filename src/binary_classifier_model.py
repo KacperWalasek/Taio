@@ -184,7 +184,7 @@ class BinaryClassifierModel:
 
         solution = ga_model.output_dict["variable"]
         print(
-            f"Fraction of misclassified series for classifier {self.class_numbers}:"
+            f"Fraction of misclassified series for classifier {self.class_numbers}: "
             f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
             flush=True,
         )
