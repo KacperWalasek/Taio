@@ -16,9 +16,12 @@ class TestCase:  # pylint: disable=too-few-public-methods
     length_percent : list
         list of numbers from range [0, 1]
     previous_considered_indices : list
+        indicies specifying window, e.g. [1, 2, 3] means that the window
+        consists of three preceding (consecutive) elements
     move : int
+        window move step
     concept_count : int
-
+        number of centroids for fuzzy c-means clustering
     """
 
     def __init__(
@@ -85,7 +88,7 @@ if __name__ == "__main__":
     data_dir = sys.argv[1]
 
     tests = []
-    tests.append(TestCase([1, 0.8], [1, 2, 3], 1, 3))
+    tests.append(TestCase([1, 0.8], [1, 2, 3, 4, 5, 6], 1, 15))
 
     for test_id, test in enumerate(tests):
         test.run(data_dir, test_id)
