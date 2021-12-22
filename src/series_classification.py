@@ -1,154 +1,142 @@
 """
-This module contains train and test functions
-which should be used to train classifier and test it.
+Train and test functions.
 """
+
 import os
 import functools
-from multiprocessing import Pool
-import numpy as np
+from sys import platform
+from binary_classifier_model import BinaryClassifierModel
+from series_classifier import SeriesClassifier
 import read_data
-import fcm_creation
-import svm
+import cmeans_clustering
+
+available_cpus = (
+    int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
+    if "SLURM_JOB_ID" in os.environ
+    else os.cpu_count()
+)
 
 
-def _process_file(file_info, length_percent, prev, split):
-    file_path = file_info["path"]
-    series = read_data.process_data(file_path, length_percent)
-    fcms = np.array(fcm_creation.create_fcms(series, prev, 4, split))
-    return file_info["class"], fcms
+if platform in ["linux", "linux2"]:
+    from ray.util.multiprocessing import Pool
+    import ray
+
+    if not ray.is_initialized():
+        ray.init(num_cpus=available_cpus)
+else:
+    from multiprocessing import Pool
 
 
-def _create_models(dir_path, length_percent, previous_considered_indices, split):
+def train(dir_path, previous_considered_indices, move, concept_count):
     """
-    Creates fcm models out of files in given directory.
-
     Parameters
     ----------
     dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
-    length_percent : number
-        Percent of rows of time series which should be taken into consideration.
     previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
+    move : int
 
     Returns
     -------
-    zip
-        Zip object containing class name and FCM model.
+    SeriesClassifier
 
     """
-    prev = np.array(previous_considered_indices)
 
-    file_infos = []
+    class_dirs = [
+        (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
+    ]
 
-    for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
-        for file in os.scandir(class_dir.path):
-            if file.name.endswith(".csv"):
-                file_infos.append(
-                    {"class": int(class_dir.name), "path": file.path, "name": file.name}
+    fun = functools.partial(_read_and_cluster_class_series, concept_count=concept_count)
+    with Pool(min(available_cpus, len(class_dirs))) as p:
+        class_models = p.map(fun, class_dirs)
+
+    too_short_series = next(
+        (
+            (series, class_model[0])
+            for class_model in class_models
+            for series in class_model[1]
+            if series.shape[1] < max(previous_considered_indices) + 2
+        ),
+        None,
+    )
+    if too_short_series is not None:
+        raise RuntimeError(
+            "Specified previous_considered_indices array invalid for given dataset"
+            f" - one of the series in class {too_short_series[1]}"
+            " after preprocessing with read_data module has only"
+            f" {too_short_series[0].shape[1]} elements."
+            " Remember that c-means processed series has one element less"
+            " due to adding adjacent differences to points (the first one is discarded)."
+        )
+    binary_classifier_models = []
+
+    for model1_idx, model1 in enumerate(class_models):
+        for model2_idx, model2 in enumerate(class_models):
+            if model1 != model2:
+                model2_memberships = cmeans_clustering.find_memberships(
+                    model2[1], model1[2][0]
+                )
+                binary_classifier_models.append(
+                    BinaryClassifierModel(
+                        (model1_idx, model2_idx),
+                        (model1[2][1], model2_memberships),
+                        model1[2][0],
+                        previous_considered_indices,
+                        move,
+                    )
                 )
 
-    with Pool() as p:
-        fun = functools.partial(
-            _process_file, length_percent=length_percent, prev=prev, split=split
+    with Pool(min(available_cpus, len(binary_classifier_models))) as p:
+        binary_classifier_models = p.map(
+            _binary_model_train_wrapper, binary_classifier_models
         )
-        svm_training_data = p.map(fun, file_infos)
-    return zip(*svm_training_data)
+
+    res = SeriesClassifier(class_models, binary_classifier_models)
+    return res
 
 
-def train(dir_path, length_percent, previous_considered_indices, split):
-    """
-    Trains svm classifier.
+def _binary_model_train_wrapper(model):
+    return model.train()
 
-    Parameters
-    ----------
-    dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
-    length_percent : number
-        Percent of rows of time series which should be taken into consideration.
-    previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
 
-    Returns
-    -------
-    None.
+def _read_and_cluster_class_series(class_dir, concept_count):
+    series_list = []
+    for file in os.scandir(class_dir[1]):
+        if file.name.endswith(".csv"):
+            series_list.append(read_data.process_data(file.path, 1))
 
-    """
-    print("Train")
-    print("Create FCM models...")
-    classes, fcms = _create_models(
-        dir_path, length_percent, previous_considered_indices, split
-    )
-    print("Train SVM algorithm...")
-    svm.save_svm(
-        svm.create_and_train_svm(np.array(fcms), np.array(classes), kernel="rbf"),
-        "./svmFile.joblib",
+    return (
+        class_dir[0],
+        series_list,
+        cmeans_clustering.find_clusters(series_list, concept_count),
     )
 
 
-def test(dir_path, length_percent, previous_considered_indices, split):
+def test(dir_path, length_percent, series_classifier):
     """
-    Tests svm classifier.
-
     Parameters
     ----------
     dir_path : string
-        Path to directory which contains directories (named with class numbers)
-        with CSV time series files.
     length_percent : number
-        Percent of rows of time series which should be taken into consideration.
-    previous_considered_indices : list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one. For example, if you want
-        to predict next element using the current one, the previous one and
-        before the previous one you can pass numbers: 1, 2, 3.
-        This argument's entries do not have to be sorted.
-    split : bool
-        If True, we create FCM for each coordinate of time series.
-        If False, we create one FCM.
+        [0, 1]
+    series_classifier : SeriesClassifier
 
     Returns
     -------
     number
-        Classification result.
+        [0, 1]
 
     """
-    print("Test")
-    print("Create FCM models...")
-    classes, fcms = _create_models(
-        dir_path, length_percent, previous_considered_indices, split
-    )
-    print("Classify time series...")
-    predicted_classes = svm.classify(svm.load_svm("./svmFile.joblib"), np.array(fcms))
-    correct_ones = 0
-    for predicted_class_number, class_number in zip(predicted_classes, classes):
-        if predicted_class_number == class_number:
-            correct_ones += 1
-    result = correct_ones / len(classes)
-    print("Classification result: ", result)
+    series_list = []
+    class_list = []
+
+    for class_dir in (entry for entry in os.scandir(dir_path) if entry.is_dir()):
+        for file in os.scandir(class_dir.path):
+            if file.name.endswith(".csv"):
+                series_list.append(read_data.process_data(file.path, length_percent))
+                class_list.append(class_dir.name)
+
+    predicted_classes = series_classifier.predict(series_list)
+
+    result = sum(predicted_classes == class_list) / len(series_list)
+
     return result
-
-
-if __name__ == "__main__":
-    file_description = {
-        "class": 4,
-        "path": "UWaveGestureLibrary_Preprocessed/Train/4/740.csv",
-        "name": "740.csv",
-    }
-    _process_file(file_description, 0.5, np.r_[1, 2], True)
