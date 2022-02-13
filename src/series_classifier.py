@@ -41,7 +41,7 @@ class SeriesClassifier:
 
         """
         series_class_votes = np.zeros(
-            (len(series_list), len(self.class_models)), dtype=int
+            (len(series_list), len(self.class_models)), dtype=np.int32
         )
         series_class_weights = np.zeros((len(series_list), len(self.class_models)))
 

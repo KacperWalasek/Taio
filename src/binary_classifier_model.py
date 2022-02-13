@@ -3,8 +3,10 @@ BinaryClassifierModel model (2 classification classes).
 """
 
 import numpy as np
+from pyfde import ClassicDE
 from geneticalgorithm2 import geneticalgorithm2 as ga
 from geneticalgorithm2 import AlgorithmParams
+import utils
 
 
 class BinaryClassifierModel:
@@ -32,7 +34,7 @@ class BinaryClassifierModel:
     _GA_PARAMS = {
         "variable_type": "real",
         "algorithm_parameters": AlgorithmParams(
-            max_num_iteration=1000,
+            max_num_iteration=200,
             population_size=800,
             max_iteration_without_improv=50,
             mutation_probability=0.05,
@@ -40,8 +42,8 @@ class BinaryClassifierModel:
     }
     _GA_RUN_PARAMS = {
         "no_plot": True,
-        "disable_printing": True,
-        "disable_progress_bar": True,
+        "disable_printing": False,
+        "disable_progress_bar": False,
     }
 
     def __init__(
@@ -57,17 +59,13 @@ class BinaryClassifierModel:
         self._membership_matrices = membership_matrices
         self.centroids = centroids
         self._previous_considered_indices = np.array(
-            previous_considered_indices, dtype=int
+            previous_considered_indices, dtype=np.int32
         )
         self._move = move
 
         self._concept_count = membership_matrices[0][0].shape[1]
         self._uwv_matrices = []
         self.is_trained = False
-
-    @staticmethod
-    def _sigmoid(x):
-        return 1 / (1 + np.exp(-5 * x))
 
     def _predict_series(self, membership_matrix, u_matrix, w_matrix, v_matrix):
 
@@ -111,7 +109,7 @@ class BinaryClassifierModel:
             (predicted_concept_membership_matrix[:, np.newaxis] * v_matrix).sum(axis=2)
         )
         discrete_class_memberships = np.zeros_like(
-            predicted_class_memberships, dtype=int
+            predicted_class_memberships, dtype=np.int32
         )
         # Below range is necessary.
         discrete_class_memberships[
@@ -128,6 +126,11 @@ class BinaryClassifierModel:
         )
         return self.class_numbers[chosen_class_idx], total_weights
 
+
+        
+
+
+
     def _split_uwv_array(self, array):
         w_matrix_offset = self._previous_considered_indices.size * self._concept_count
         v_matrix_offset = w_matrix_offset + self._concept_count ** 2
@@ -138,8 +141,20 @@ class BinaryClassifierModel:
         v_matrix = array[v_matrix_offset:].reshape(2, -1)
         return u_matrix, w_matrix, v_matrix
 
+    def _create_new_fitness_func(self):
+        stacked_matrices = [np.vstack(x) for x in self._membership_matrices]
+        series_lengths = list(map(lambda x: np.array([y.shape[0] for y in x]), self._membership_matrices))
+        def fitness_func(solution):
+            u_matrix, w_matrix, v_matrix = self._split_uwv_array(solution)
+            result = 0
+            for idx in range(2):
+                result += np.sum(utils._predict_all_series(self._previous_considered_indices, self._move, stacked_matrices[idx], series_lengths[idx], u_matrix, w_matrix, v_matrix) != idx)
+            return result
+        return fitness_func
+
     def _create_fitness_func(self):
         def fitness_func(solution):
+            solution = np.array(solution)
             u_matrix, w_matrix, v_matrix = self._split_uwv_array(solution)
             misclassified_count = 0
             for idx, class_number in enumerate(self.class_numbers):
@@ -150,7 +165,6 @@ class BinaryClassifierModel:
                     if assigned_class_number != class_number:
                         misclassified_count += 1
             return misclassified_count
-
         return fitness_func
 
     def train(self):
@@ -164,7 +178,7 @@ class BinaryClassifierModel:
         """
         if self.is_trained:
             return self
-        fitness_func = self._create_fitness_func()
+        fitness_func = self._create_new_fitness_func()#_create_fitness_func()
         trained_array_size = (
             self._previous_considered_indices.size * self._concept_count
             + self._concept_count ** 2
@@ -182,13 +196,22 @@ class BinaryClassifierModel:
             **self._GA_RUN_PARAMS,
         )
 
-        solution = ga_model.output_dict["variable"]
-        print(
-            f"Fraction of misclassified series for classifier {self.class_numbers}: "
-            f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
-            flush=True,
-        )
-        self._uwv_matrices = self._split_uwv_array(solution)
+        # solution = ga_model.output_dict["variable"]
+        # print(
+        #     f"Fraction of misclassified series for classifier {self.class_numbers}: "
+        #     f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
+        #     flush=True,
+        # )
+
+        solver = ClassicDE(fitness_func, n_dim = trained_array_size, n_pop = 800, limits = (-1., 1.))
+        index = 0
+        for best, fit in solver(n_it=1):
+            print(f"{index}, fit: {fit}")
+            index += 1
+        print(f"Best fit {fit}")
+
+        #self._uwv_matrices = self._split_uwv_array(solution)
+        self._uwv_matrices = self._split_uwv_array(np.array(best))
         self.is_trained = True
         del self._membership_matrices
         return self
@@ -238,12 +261,21 @@ if __name__ == "__main__":
     model = BinaryClassifierModel(
         (5, 6), test_membership_matrices, None, test_previous_indices, 2
     )
-    model.train()
-    if (
-        model.predict(test_membership_1)[0] == 5
-        and model.predict(test_membership_2)[0] == 5
-        and model.predict(test_membership_3)[0] == 6
-    ):
-        print("OK")
-    else:
-        print("NOT OK")
+
+    test1 = np.array([test_membership_1, test_membership_2])
+    test2 = np.array([test_membership_3])
+
+    model2 = BinaryClassifierModel(
+        (5, 6), (test1, test2), None, test_previous_indices, 2 
+    )
+    model2._predict_all_series(np.vstack([test_membership_1, test_membership_2]), np.r_[test_membership_1.shape[0], test_membership_2.shape[0]], np.arange(3 * 3).reshape(3, -1), np.arange(3*3).reshape(3, -1), np.arange(3*2).reshape(2, -1))
+
+    # model.train()
+    # if (
+    #     model.predict(test_membership_1)[0] == 5
+    #     and model.predict(test_membership_2)[0] == 5
+    #     and model.predict(test_membership_3)[0] == 6
+    # ):
+    #     print("OK")
+    # else:
+    #     print("NOT OK")

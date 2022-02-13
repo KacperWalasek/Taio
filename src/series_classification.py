@@ -5,6 +5,7 @@ Train and test functions.
 import os
 import functools
 from sys import platform
+from timeit import timeit
 from binary_classifier_model import BinaryClassifierModel
 from series_classifier import SeriesClassifier
 import read_data
@@ -41,9 +42,9 @@ def train(dir_path, previous_considered_indices, move, concept_count):
 
     """
 
-    class_dirs = [
+    class_dirs = [x for x in (
         (entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()
-    ]
+    ) if x[0] == "1" or x[0] == "2"]
 
     fun = functools.partial(_read_and_cluster_class_series, concept_count=concept_count)
     with Pool(min(available_cpus, len(class_dirs))) as p:
@@ -84,11 +85,15 @@ def train(dir_path, previous_considered_indices, move, concept_count):
                         move,
                     )
                 )
+                break
 
-    with Pool(min(available_cpus, len(binary_classifier_models))) as p:
-        binary_classifier_models = p.map(
-            _binary_model_train_wrapper, binary_classifier_models
-        )
+    #with Pool(min(available_cpus, len(binary_classifier_models))) as p:
+    #    binary_classifier_models = p.map(
+    #        _binary_model_train_wrapper, binary_classifier_models
+    #    )
+    binary_classifier_models = binary_classifier_models[0].train()
+        
+    #timeit("_binary_model_train_wrapper(binary_classifier_models)", globals=locals())
 
     res = SeriesClassifier(class_models, binary_classifier_models)
     return res

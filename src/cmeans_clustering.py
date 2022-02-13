@@ -70,7 +70,7 @@ def _cmeans_wrapper(coordinates, concept_count):
     """
     m = 2
     error = 1e-8
-    maxiter = 1e6
+    maxiter = 1e2
     ret = fuzz.cmeans(coordinates, concept_count, m, error, maxiter)
     return (
         ret[0],
