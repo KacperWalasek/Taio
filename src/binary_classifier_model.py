@@ -7,6 +7,7 @@ from pyfde import ClassicDE
 from geneticalgorithm2 import geneticalgorithm2 as ga
 from geneticalgorithm2 import AlgorithmParams
 import utils
+import functools
 
 
 class BinaryClassifierModel:
@@ -127,20 +128,6 @@ class BinaryClassifierModel:
         return self.class_numbers[chosen_class_idx], total_weights
 
 
-        
-
-
-
-    def _split_uwv_array(self, array):
-        w_matrix_offset = self._previous_considered_indices.size * self._concept_count
-        v_matrix_offset = w_matrix_offset + self._concept_count ** 2
-        u_matrix = array[:w_matrix_offset].reshape(-1, self._concept_count)
-        w_matrix = array[w_matrix_offset:v_matrix_offset].reshape(
-            -1, self._concept_count
-        )
-        v_matrix = array[v_matrix_offset:].reshape(2, -1)
-        return u_matrix, w_matrix, v_matrix
-
     def _create_new_fitness_func(self):
         stacked_matrices = [np.vstack(x) for x in self._membership_matrices]
         series_lengths = list(map(lambda x: np.array([y.shape[0] for y in x]), self._membership_matrices))
@@ -153,19 +140,22 @@ class BinaryClassifierModel:
         return fitness_func
 
     def _create_fitness_func(self):
-        def fitness_func(solution):
-            solution = np.array(solution)
-            u_matrix, w_matrix, v_matrix = self._split_uwv_array(solution)
-            misclassified_count = 0
-            for idx, class_number in enumerate(self.class_numbers):
-                for membership_matrix in self._membership_matrices[idx]:
-                    assigned_class_number = self._predict_series(
-                        membership_matrix, u_matrix, w_matrix, v_matrix
-                    )[0]
-                    if assigned_class_number != class_number:
-                        misclassified_count += 1
-            return misclassified_count
-        return fitness_func
+        # def fitness_func(solution):
+        #     solution = np.array(solution)
+        #     u_matrix, w_matrix, v_matrix = self._split_uwv_array(solution)
+        #     misclassified_count = 0
+        #     for idx, class_number in enumerate(self.class_numbers):
+        #         for membership_matrix in self._membership_matrices[idx]:
+        #             assigned_class_number = self._predict_series(
+        #                 membership_matrix, u_matrix, w_matrix, v_matrix
+        #             )[0]
+        #             if assigned_class_number != class_number:
+        #                 misclassified_count += 1
+        #     return misclassified_count
+        result = functools.partial(utils.fitness_func, membership_matrices = self._membership_matrices, 
+                previous_considered_indices = self._previous_considered_indices,
+                move = self._move)
+        return result
 
     def train(self):
         """
@@ -178,7 +168,7 @@ class BinaryClassifierModel:
         """
         if self.is_trained:
             return self
-        fitness_func = self._create_new_fitness_func()#_create_fitness_func()
+        fitness_func = self._create_fitness_func()#_create_fitness_func()
         trained_array_size = (
             self._previous_considered_indices.size * self._concept_count
             + self._concept_count ** 2
@@ -196,22 +186,22 @@ class BinaryClassifierModel:
             **self._GA_RUN_PARAMS,
         )
 
-        # solution = ga_model.output_dict["variable"]
-        # print(
-        #     f"Fraction of misclassified series for classifier {self.class_numbers}: "
-        #     f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
-        #     flush=True,
-        # )
+        solution = ga_model.output_dict["variable"]
+        print(
+            f"Fraction of misclassified series for classifier {self.class_numbers}: "
+            f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
+            flush=True,
+        )
 
-        solver = ClassicDE(fitness_func, n_dim = trained_array_size, n_pop = 800, limits = (-1., 1.))
-        index = 0
-        for best, fit in solver(n_it=1):
-            print(f"{index}, fit: {fit}")
-            index += 1
-        print(f"Best fit {fit}")
+        # solver = ClassicDE(fitness_func, n_dim = trained_array_size, n_pop = 800, limits = (-1., 1.))
+        # index = 0
+        # for best, fit in solver(n_it=1):
+        #     print(f"{index}, fit: {fit}")
+        #     index += 1
+        # print(f"Best fit {fit}")
 
-        #self._uwv_matrices = self._split_uwv_array(solution)
-        self._uwv_matrices = self._split_uwv_array(np.array(best))
+        self._uwv_matrices = self._split_uwv_array(solution)
+        # self._uwv_matrices = self._split_uwv_array(np.array(best))
         self.is_trained = True
         del self._membership_matrices
         return self
