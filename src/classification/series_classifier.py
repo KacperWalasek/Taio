@@ -4,8 +4,7 @@ Class for classifying list of time series.
 
 import pickle
 import numpy as np
-import cmeans_clustering as cmeans
-
+import preprocessing.cmeans_clustering as cmeans
 
 class SeriesClassifier:
     """

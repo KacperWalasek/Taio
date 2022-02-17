@@ -2,11 +2,11 @@
 C-means tools.
 """
 
+from params import cmeans_params
 import functools
 from itertools import accumulate
 import numpy as np
 import skfuzzy as fuzz
-
 
 def _include_diffs(series_list):
     """
@@ -68,10 +68,11 @@ def _cmeans_wrapper(coordinates, concept_count):
         ((concept_count, 2 * nr_of_coordinates), (sum_of_series_len, concept_count))
 
     """
-    m = 2
-    error = 1e-8
-    maxiter = 1e2
-    ret = fuzz.cmeans(coordinates, concept_count, m, error, maxiter)
+    ret = fuzz.cmeans(coordinates, 
+        concept_count,
+        m = cmeans_params["m"], 
+        error = cmeans_params["error"], 
+        maxiter = cmeans_params["maxiter"])
     return (
         ret[0],
         ret[1].T,
@@ -160,7 +161,11 @@ def find_memberships(series_list, centroids):
 
     # memberships = list(map(predict_fun, with_diffs))
     predict_fun = functools.partial(
-        fuzz.cmeans_predict, cntr_trained=centroids, m=2, error=1e-8, maxiter=2
+        fuzz.cmeans_predict, 
+        cntr_trained = centroids, 
+        m = cmeans_params["m"], 
+        error = cmeans_params["error"], 
+        maxiter = cmeans_params["maxiter"]
     )
 
     return [x[0].T for x in map(predict_fun, with_diffs)]

@@ -5,8 +5,9 @@ BinaryClassifierModel model (2 classification classes).
 import numpy as np
 from geneticalgorithm2 import geneticalgorithm2 as ga
 from geneticalgorithm2 import AlgorithmParams
+from params import _GA_PARAMS, _GA_RUN_PARAMS
 import functools
-import computing_utils
+import classification.computing_utils as computing_utils
 
 
 class BinaryClassifierModel:
@@ -30,21 +31,6 @@ class BinaryClassifierModel:
         Step of frame used in processing single series.
 
     """
-
-    _GA_PARAMS = {
-        "variable_type": "real",
-        "algorithm_parameters": AlgorithmParams(
-            max_num_iteration=200,
-            population_size=800,
-            max_iteration_without_improv=50,
-            mutation_probability=0.05,
-        ),
-    }
-    _GA_RUN_PARAMS = {
-        "no_plot": True,
-        "disable_printing": False,
-        "disable_progress_bar": False,
-    }
 
     def __init__(
         self,
@@ -94,12 +80,12 @@ class BinaryClassifierModel:
             function = fitness_func,
             dimension=trained_array_size,
             variable_boundaries=bounds,
-            **self._GA_PARAMS,
+            **_GA_PARAMS,
         )
         ga_model.run(
             set_function=ga.set_function_multiprocess(fitness_func),
             stop_when_reached=0,
-            **self._GA_RUN_PARAMS,
+            **_GA_RUN_PARAMS,
         )
 
         solution = ga_model.output_dict["variable"]
