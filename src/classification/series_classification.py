@@ -44,7 +44,7 @@ def train(dir_path, previous_considered_indices, move, concept_count):
                         move,
                     )
                 )
-                break
+                
     binary_classifier_models = map(_binary_model_train_wrapper,binary_classifier_models)
 
     res = SeriesClassifier(class_models, binary_classifier_models)
