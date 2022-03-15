@@ -5,11 +5,13 @@ import os
 import functools
 from sys import platform
 from timeit import timeit
-from classification.binary_classifier_model import BinaryClassifierModel
 from classification.series_classifier import SeriesClassifier
 from preprocessing.create_class_models import create_class_models
 import preprocessing.cmeans_clustering as cmeans_clustering
 import preprocessing.read_data as read_data
+from classification.binary_classifier_model import BinaryClassifierModel
+import params
+import classification.binary_classifier_factory  
 
 def train(dir_path, previous_considered_indices, move, concept_count):
     """
@@ -27,32 +29,17 @@ def train(dir_path, previous_considered_indices, move, concept_count):
 
     class_models = create_class_models(dir_path, previous_considered_indices, concept_count)
     
-    binary_classifier_models = []
-
-    for model1_idx, model1 in enumerate(class_models):
-        for model2_idx, model2 in enumerate(class_models):
-            if model1 != model2:
-                model2_memberships = cmeans_clustering.find_memberships(
-                    model2[1], model1[2][0]
-                )
-                binary_classifier_models.append(
-                    BinaryClassifierModel(
-                        (model1_idx, model2_idx),
-                        (model1[2][1], model2_memberships),
-                        model1[2][0],
-                        previous_considered_indices,
-                        move,
-                    )
-                )
-                
-    binary_classifier_models = map(_binary_model_train_wrapper,binary_classifier_models)
+    create_classifiers_fun = {
+            0: classification.binary_classifier_factory.create_asymetric_binary_classifiers,
+            1: classification.binary_classifier_factory.create_symetric_binary_classifiers,
+            2: classification.binary_classifier_factory.create_k_vs_all_binary_classifiers,
+        }[params.method]
+    binary_classifier_models = create_classifiers_fun(class_models, previous_considered_indices, move)
+    for model in binary_classifier_models:
+        model.train()
 
     res = SeriesClassifier(class_models, binary_classifier_models)
     return res
-
-
-def _binary_model_train_wrapper(model):
-    return model.train()
 
 
 def test(dir_path, length_percent, series_classifier):

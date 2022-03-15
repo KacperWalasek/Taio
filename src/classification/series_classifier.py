@@ -5,7 +5,7 @@ Class for classifying list of time series.
 import pickle
 import numpy as np
 import preprocessing.cmeans_clustering as cmeans
-
+import params
 class SeriesClassifier:
     """
     A class for classifying time series based upon trained binary classifiers.
@@ -57,10 +57,17 @@ class SeriesClassifier:
                     predicted_class_idx, output_weights = binary_classifier.predict(
                         membership_matrix
                     )
-                    series_class_votes[series_idx, predicted_class_idx] += 1
-                    series_class_weights[
-                        series_idx, binary_classifier.class_numbers
-                    ] += output_weights
+                    if predicted_class_idx != -1:
+                        series_class_votes[series_idx, predicted_class_idx] += 1
+                    if binary_classifier.class_numbers[1] == -1:
+                        series_class_weights[
+                            series_idx,binary_classifier.class_numbers[0]
+                        ] += output_weights[0]
+                    else:
+                        series_class_weights[
+                            series_idx, binary_classifier.class_numbers
+                        ] += output_weights
+
 
         result_indices = self._prepare_result_indices(
             series_class_votes, series_class_weights
@@ -76,6 +83,7 @@ class SeriesClassifier:
         )
         max_entries_count_per_row = max_entries_in_row.sum(axis=1)
         ambiguous_rows = max_entries_count_per_row > 1
+        
         # The next line is necessary to properly handle situations such that class with less votes
         # in total has greater sum of weights than classes with max number of votes.
         series_class_weights[np.logical_not(max_entries_in_row)] = -1

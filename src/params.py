@@ -4,7 +4,7 @@ _GA_PARAMS = {
     "variable_type": "real",
     "algorithm_parameters": AlgorithmParams(
         max_num_iteration=20,
-        population_size=100,
+        population_size=10,
         max_iteration_without_improv=50,
         mutation_probability=0.05,
     ),
@@ -20,3 +20,8 @@ cmeans_params = {
     "error": 1e-8,
     "maxiter": 1e2
 }
+
+method = 0
+# 0 - classifier k vs l with centroids for k
+# 1 - classifier k vs l with centroids for k and l
+# 2 - classifier k vs all with centroids for k
