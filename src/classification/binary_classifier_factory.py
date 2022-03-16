@@ -2,6 +2,7 @@ import preprocessing.cmeans_clustering as cmeans_clustering
 from classification.binary_classifier_model import BinaryClassifierModel
 import random
 import math
+import numpy as np
 def create_asymetric_binary_classifiers(class_models,previous_considered_indices,move):
     print("asymetric binary classifiers")
     binary_classifier_models = []
@@ -33,7 +34,7 @@ def create_symetric_binary_classifiers(class_models,previous_considered_indices,
     for model1_idx, model1 in enumerate(class_models):
         for model2_idx, model2 in enumerate(class_models):
             if model1 != model2:
-                centroids = model1[2][0] + model2[2][0]
+                centroids = np.concatenate((model1[2][0], model2[2][0]))
                 model1_memberships = cmeans_clustering.find_memberships(
                     model1[1], centroids
                 )
