@@ -33,8 +33,9 @@ def create_symetric_binary_classifiers(class_models,previous_considered_indices,
 
     for model1_idx, model1 in enumerate(class_models):
         for model2_idx, model2 in enumerate(class_models):
-            if model1 != model2:
+            if model1 != model2 and model1_idx<model2_idx:
                 centroids = np.concatenate((model1[2][0], model2[2][0]))
+
                 model1_memberships = cmeans_clustering.find_memberships(
                     model1[1], centroids
                 )
