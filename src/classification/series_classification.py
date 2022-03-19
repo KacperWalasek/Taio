@@ -45,14 +45,21 @@ def train(dir_path, previous_considered_indices, move, concept_count):
                     )
                 )
                 
-    binary_classifier_models = map(_binary_model_train_wrapper,binary_classifier_models)
+    for binary_model in binary_classifier_models:
+        binary_model.train()
+
+    # good = 0
+    # total = 0
+    # for matrix in binary_classifier_models[0]._membership_matrices[1]:
+    #     pred = binary_classifier_models[0].predict(matrix)
+    #     if pred[0] == binary_classifier_models[0].class_numbers[1]:
+    #         good += 1
+    #     total += 1
+    # print(good / total)
 
     res = SeriesClassifier(class_models, binary_classifier_models)
     return res
 
-
-def _binary_model_train_wrapper(model):
-    return model.train()
 
 
 def test(dir_path, length_percent, series_classifier):
