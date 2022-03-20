@@ -45,15 +45,15 @@ class SeriesClassifier:
         series_class_weights = np.zeros((len(series_list), len(self.class_models)))
 
         for class_idx, class_model in enumerate(self.class_models):
-            membership_list = cmeans.find_memberships(series_list, class_model[1])
             current_class_binary_classifiers = list(
                 filter(
                     lambda x, class_idx=class_idx: x.class_numbers[0] == class_idx,
                     self._binary_classifiers,
                 )
             )
-            for series_idx, membership_matrix in enumerate(membership_list):
-                for binary_classifier in current_class_binary_classifiers:
+            for binary_classifier in current_class_binary_classifiers:
+                membership_list = cmeans.find_memberships(series_list, binary_classifier.centroids)
+                for series_idx, membership_matrix in enumerate(membership_list):
                     predicted_class_idx, output_weights = binary_classifier.predict(
                         membership_matrix
                     )
