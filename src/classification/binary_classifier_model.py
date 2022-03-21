@@ -134,10 +134,10 @@ class BinaryClassifierModel:
             .batch(64)
         )
 
-        stop_callback = tf.keras.callbacks.EarlyStopping(monitor="loss", patience=5)
+        stop_callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3)
 
         print(f"Training binary classifier for classes {self.class_numbers}")
-        self._model.fit(dataset_train, verbose=0, epochs=2, callbacks=[stop_callback])
+        self._model.fit(dataset_train, verbose=0, epochs=100, callbacks=[stop_callback], validation_split=0.1)
         print(f"Training binary classifier for classes ended {self.class_numbers}")
 
         self._probability_model = tf.keras.Sequential(
