@@ -1,14 +1,4 @@
-from geneticalgorithm2 import AlgorithmParams
 
-_GA_PARAMS = {
-    "variable_type": "real",
-    "algorithm_parameters": AlgorithmParams(
-        max_num_iteration=20,
-        population_size=10,
-        max_iteration_without_improv=50,
-        mutation_probability=0.05,
-    ),
-}
 _GA_RUN_PARAMS = {
     "no_plot": True,
     "disable_printing": False,
@@ -18,7 +8,7 @@ _GA_RUN_PARAMS = {
 cmeans_params = {
     "m": 2,
     "error": 1e-8,
-    "maxiter": 1e2
+    "maxiter": 1e4
 }
 
 method = 0
