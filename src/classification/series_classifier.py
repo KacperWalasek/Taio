@@ -20,7 +20,7 @@ class SeriesClassifier:
     """
 
     def __init__(self, class_models, binary_classifiers):
-        self.class_models = list(map(lambda x: (x[0], x[2][0]), class_models))
+        self.class_models = list(map(lambda x: x[0], class_models))
         self._binary_classifiers = binary_classifiers
 
     def predict(self, series_list):
@@ -44,7 +44,7 @@ class SeriesClassifier:
         )
         series_class_weights = np.zeros((len(series_list), len(self.class_models)))
 
-        for class_idx, class_model in enumerate(self.class_models):
+        for class_idx in range(len(self.class_models)):
             current_class_binary_classifiers = list(
                 filter(
                     lambda x, class_idx=class_idx: x.class_numbers[0] == class_idx,
@@ -72,7 +72,7 @@ class SeriesClassifier:
         result_indices = self._prepare_result_indices(
             series_class_votes, series_class_weights
         )
-        return np.array([x[0] for x in self.class_models])[result_indices]
+        return np.array([x for x in self.class_models])[result_indices]
 
     @staticmethod
     def _prepare_result_indices(series_class_votes, series_class_weights):

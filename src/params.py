@@ -21,7 +21,7 @@ cmeans_params = {
     "maxiter": 1e2
 }
 
-method = 0
+method = 3
 # 0 - classifier k vs l with centroids for k
 # 1 - classifier k vs l with centroids for k and l trained separately
 # 2 - classifier k vs all with centroids for k
