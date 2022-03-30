@@ -1,9 +1,10 @@
+from pyexpat import model
 import preprocessing.cmeans_clustering as cmeans_clustering
 from classification.binary_classifier_model import BinaryClassifierModel
 import random
 import math
 import numpy as np
-def create_asymetric_binary_classifiers(class_models,previous_considered_indices,move):
+def create_asymetric_binary_classifiers(class_models,previous_considered_indices,move,concept_count):
     print("asymetric binary classifiers")
     binary_classifier_models = []
     for model1_idx, model1 in enumerate(class_models):
@@ -27,7 +28,7 @@ def create_asymetric_binary_classifiers(class_models,previous_considered_indices
     return binary_classifier_models
 
     
-def create_symetric_binary_classifiers(class_models,previous_considered_indices,move):
+def create_symetric_binary_classifiers(class_models,previous_considered_indices,move,concept_count):
     print("symetric binary classifiers")
     binary_classifier_models = []
 
@@ -54,7 +55,28 @@ def create_symetric_binary_classifiers(class_models,previous_considered_indices,
                 )
     return binary_classifier_models
     
-def create_k_vs_all_binary_classifiers(class_models,previous_considered_indices,move):
+def create_combined_symetric_binary_classifiers(class_models,previous_considered_indices,move,concept_count):
+    print("combined symetric binary classifiers")
+    binary_classifier_models = []
+
+    for model1_idx, model1 in enumerate(class_models):
+        for model2_idx, model2 in enumerate(class_models):
+            if model1 != model2 and model1_idx<model2_idx:
+                centroids = cmeans_clustering.find_clusters(model1[1]+model2[1], concept_count=concept_count)
+                
+                class1_len = len(model1[1]) 
+                binary_classifier_models.append(
+                    BinaryClassifierModel(
+                        (model1_idx, model2_idx),
+                        (centroids[1][:class1_len],centroids[1][class1_len:]),
+                        centroids[0],
+                        previous_considered_indices,
+                        move,
+                    )
+                )
+    return binary_classifier_models
+    
+def create_k_vs_all_binary_classifiers(class_models,previous_considered_indices,move,concept_count):
     print("k vs all binary classifiers")
     binary_classifier_models = []
     reduce_fraction = 1/(len(class_models)-1)

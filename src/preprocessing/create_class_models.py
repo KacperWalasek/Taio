@@ -3,6 +3,7 @@ import functools
 from sys import platform
 import preprocessing.read_data as read_data
 import preprocessing.cmeans_clustering as cmeans_clustering
+import params
 
 available_cpus = (
     int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
@@ -54,8 +55,13 @@ def _read_and_cluster_class_series(class_dir, concept_count):
         if file.name.endswith(".csv"):
             series_list.append(read_data.process_data(file.path, 1))
 
+    if params.method==3:
+        clusters = []
+    else:
+        clusters = cmeans_clustering.find_clusters(series_list, concept_count)
+    
     return (
         class_dir[0],
         series_list,
-        cmeans_clustering.find_clusters(series_list, concept_count),
+        clusters,
     )

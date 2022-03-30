@@ -33,8 +33,9 @@ def train(dir_path, previous_considered_indices, move, concept_count):
             0: classification.binary_classifier_factory.create_asymetric_binary_classifiers,
             1: classification.binary_classifier_factory.create_symetric_binary_classifiers,
             2: classification.binary_classifier_factory.create_k_vs_all_binary_classifiers,
+            3: classification.binary_classifier_factory.create_combined_symetric_binary_classifiers,
         }[params.method]
-    binary_classifier_models = create_classifiers_fun(class_models, previous_considered_indices, move)
+    binary_classifier_models = create_classifiers_fun(class_models, previous_considered_indices, move, concept_count)
     for model in binary_classifier_models:
         model.train()
 
