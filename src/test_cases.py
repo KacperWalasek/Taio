@@ -88,8 +88,7 @@ class TestCase:  # pylint: disable=too-few-public-methods
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        data_dir = "..\\UWaveGestureLibrary_Preprocessed"
-        # raise RuntimeError("Too few arguments, dataset directory path is missing")
+        raise RuntimeError("Too few arguments, dataset directory path is missing")
     else:
         data_dir = sys.argv[1]
 
