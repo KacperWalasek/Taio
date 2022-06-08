@@ -2,8 +2,8 @@
 #SBATCH --job-name=taio_{name}
 #SBATCH --cpus-per-task={cpus}
 #SBATCH --output=slurm-{name}-%j.out
-#SBATCH --partition=medium
+#SBATCH --time 1-0
 
-source /home2/faculty/pwesolowski/.pyenv/versions/venv/bin/activate
+source ~/.pyenv/versions/taioenv/bin/activate
 
 python src/test_cases.py tests/{name}

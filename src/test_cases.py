@@ -89,12 +89,15 @@ class TestCase:  # pylint: disable=too-few-public-methods
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         data_dir = "..\\UWaveGestureLibrary_Preprocessed"
-        # raise RuntimeError("Too few arguments, dataset directory path is missing")
+        raise RuntimeError("Too few arguments, dataset directory path is missing")
     else:
         data_dir = sys.argv[1]
 
     tests = []
-    tests.append(TestCase([1, 0.8], [1, 2, 3, 4], 1, 3))
-
+    tests.append(TestCase([1], [1, 2, 3, 4, 5, 6, 7, 8], 1, 6))
+    tests.append(TestCase([1], [1, 2, 3, 4, 5, 6, 7, 8], 1, 8))
+    tests.append(TestCase([1], [1, 2, 3, 4, 5, 6, 7, 8], 1, 10))
+    tests.append(TestCase([1], [1, 2, 3, 4, 5, 6, 7, 8], 1, 12))
+    tests.append(TestCase([1], [1, 2, 3, 4, 5, 6, 7, 8], 1, 14))
     for test_id, test in enumerate(tests):
         test.run(data_dir, test_id)

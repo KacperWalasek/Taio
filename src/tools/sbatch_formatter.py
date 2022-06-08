@@ -13,7 +13,7 @@ for series_data_dir in os.scandir("tests"):
             1 for x in os.scandir(next(os.scandir(series_data_dir)).path) if x.is_dir()
         )
         if class_count > 6:
-            CPUS = 8
+            CPUS = 10
         elif class_count > 4:
             CPUS = 4
         elif class_count > 2:
@@ -23,5 +23,5 @@ for series_data_dir in os.scandir("tests"):
         formatted_template = template.format(
             cpus=CPUS, name=series_data_dir.name
         )
-        with open(f"start_{series_data_dir.name}", "w", encoding='UTF-8') as file:
+        with open(f"starts/start_{series_data_dir.name}", "w", encoding='UTF-8') as file:
             file.write(formatted_template)

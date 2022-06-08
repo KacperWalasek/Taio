@@ -3,6 +3,5 @@ black
 pylint
 scikit-fuzzy==0.4.2
 geneticalgorithm2
-ray ; sys_platform == 'linux' or sys_platform == 'linux2'
 numba
 tensorflow

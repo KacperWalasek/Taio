@@ -12,14 +12,7 @@ available_cpus = (
 )
 
 
-if platform in ["linux", "linux2"]:
-    from ray.util.multiprocessing import Pool
-    import ray
-
-    if not ray.is_initialized():
-        ray.init(num_cpus=available_cpus)
-else:
-    from multiprocessing import Pool
+from multiprocessing import Pool
     
 def create_class_models(dir_path, previous_considered_indices, concept_count):
     class_dirs = [(entry.name, entry.path) for entry in os.scandir(dir_path) if entry.is_dir()]
