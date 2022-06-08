@@ -11,8 +11,8 @@ _GA_PARAMS = {
 }
 _GA_RUN_PARAMS = {
     "no_plot": True,
-    "disable_printing": False,
-    "disable_progress_bar": False,
+    "disable_printing": True,
+    "disable_progress_bar": True,
 }
 
 cmeans_params = {
