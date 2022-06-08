@@ -89,11 +89,11 @@ class BinaryClassifierModel:
         )
 
         solution = ga_model.output_dict["variable"]
-        print(
-            f"Fraction of misclassified series for classifier {self.class_numbers}: "
-            f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
-            flush=True,
-        )
+        # print(
+        #     f"Fraction of misclassified series for classifier {self.class_numbers}: "
+        #     f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
+        #     flush=True,
+        # )
 
         self._uwv_matrices = computing_utils.split_uwv_array(solution, self._previous_considered_indices.size, self._concept_count)
         self.is_trained = True
