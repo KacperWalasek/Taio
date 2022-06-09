@@ -132,4 +132,5 @@ dmypy.json
 .vscode/
 svmFile.joblib
 start_*
+tests/*
 !start_template
