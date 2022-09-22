@@ -12,7 +12,7 @@ import classification.computing_utils as computing_utils
 
 class BinaryClassifierModel:
     """
-    Class representing single class vs class classifier model.
+    Class representing single class vs class classifier_pipeline model.
 
     Parameters
     ----------
@@ -60,7 +60,7 @@ class BinaryClassifierModel:
 
     def train(self):
         """
-        Method for training classifier instance.
+        Method for training classifier_pipeline instance.
 
         Returns
         -------
@@ -90,7 +90,7 @@ class BinaryClassifierModel:
 
         solution = ga_model.output_dict["variable"]
         print(
-            f"Fraction of misclassified series for classifier {self.class_numbers}: "
+            f"Fraction of misclassified series for classifier_pipeline {self.class_numbers}: "
             f"{ga_model.output_dict['function']/sum((len(x) for x in self._membership_matrices))}",
             flush=True,
         )

@@ -23,7 +23,7 @@ cmeans_params = {
 }
 
 method = 0
-# 0 - classifier k vs l with centroids for k
-# 1 - classifier k vs l with centroids for k and l trained separately
-# 2 - classifier k vs all with centroids for k
-# 3 - classifier k vs l with centroids for k and l trained together
+# 0 - classifier_pipeline k vs l with centroids for k
+# 1 - classifier_pipeline k vs l with centroids for k and l trained separately
+# 2 - classifier_pipeline k vs all with centroids for k
+# 3 - classifier_pipeline k vs l with centroids for k and l trained together
