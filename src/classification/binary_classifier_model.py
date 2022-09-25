@@ -95,7 +95,7 @@ class BinaryClassifierModel:
             flush=True,
         )
 
-        self._uwv_matrices = computing_utils.split_uwv_array(solution, self._previous_considered_indices.size, self._concept_count)
+        self._uwv_matrices = computing_utils.split_weights_array(solution, self._previous_considered_indices.size, self._concept_count)
         self.is_trained = True
         del self._membership_matrices
         return self
