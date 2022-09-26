@@ -12,45 +12,26 @@ from geneticalgorithm2 import AlgorithmParams
 from geneticalgorithm2 import geneticalgorithm2 as ga
 
 from classifier_pipeline import computing_backend
+from classifier_pipeline.fuzzy_cmeans import CMeansTransformer
 from classifier_pipeline.dataset import SeriesDataset
 
 
-class UncombinedBinaryClassifierBase:
+class BinaryClassifier:
     """
-    Class representing single class vs class classifier_pipeline model.
-
-    Parameters
-    ----------
-    class_numbers : tuple
-        Tuple containing two class numbers.
-    membership_matrices : tuple
-        Tuple containing two lists of series membership matrices.
-        Both elements of tuple correspond to classes specified in class_numbers.
-    centroids: numpy.ndarray
-        Ndarray of shape (concept_count, centroids_space_dimension) containing
-        coordinates of centroids.
-    previous_considered_indices: list
-        List containing indices of previous elements which will be
-        FCM's input for predicting the next one.
-    move: int
-        Step of frame used in processing single series.
-
+    Base classifier class
     """
-
-    def __init__(self, fuzzy_space_class_idx: Literal[0, 1], config: MutableMapping, logger: Logger):
+    def __init__(self, config: MutableMapping, cmeans_transformer: CMeansTransformer, logger: Logger):
+        """
+        @param config: config to use
+        @param cmeans_transformer:
+        @param logger:
+        """
         self.logger = logger
 
-        self.fuzzy_space_class_idx = fuzzy_space_class_idx
-
         base_classifier_config = config["BaseClassifier"]
-        self.fcm_concept_count = base_classifier_config['FCMConceptCount']
         self.moving_window_size = base_classifier_config['MovingWindowSize']
         self.moving_window_stride = base_classifier_config['MovingWindowStride']
 
-        cmeans_config = config["FuzzyCMeans"]
-        self.cmeans_params = {
-            "m": cmeans_config["M"], "error": cmeans_config["Error"], "maxiter": cmeans_config["Maxiter"]
-        }
         ga_config = config["GeneticAlgorithm"]
         self.ga_params = {
             "max_num_iteration": ga_config["MaxNumIteration"],
@@ -64,25 +45,26 @@ class UncombinedBinaryClassifierBase:
             "disable_printing": ga_run_config["DisablePrinting"],
             "disable_progress_bar": ga_run_config["DisableProgressBar"],
         }
+        self.cmeans_transformer = cmeans_transformer
         self.is_fitted = False
-
         self.weights: List[np.ndarray] = None
-        self.centroids = None
 
-    def fit(self, dataset: SeriesDataset, combine_concepts: bool):
+    def fit(self, dataset: SeriesDataset) -> "BinaryClassifier":
+        """
+        Fits classifier
+        @param dataset:
+        @return: self
+        """
         if dataset.n_classes != 2:
             raise ValueError("Binary classifier accepts only two-class datasets")
 
-        reference_class_series_list = dataset.get_series_list(self.fuzzy_space_class_idx)
-        self.centroids = self.compute_centroids(np.vstack(reference_class_series_list))
-
-        memberships = dataset.transform(partial(self.predict_memberships, centroids=self.centroids))
+        memberships = dataset.transform(self.cmeans_transformer.transform)
         fitness_func = partial(computing_backend.fitness_func, membership_matrices=memberships,
                                moving_window_size=self.moving_window_size,
                                moving_window_stride=self.moving_window_stride)
 
         trained_array_size = (
-                self.moving_window_size * self.fcm_concept_count
+                self.moving_window_size * self.cmeans_transformer.num_centroids
                 + self.fcm_concept_count ** 2
                 + 2 * self.fcm_concept_count
         )
@@ -110,30 +92,16 @@ class UncombinedBinaryClassifierBase:
         self.is_fitted = True
         return self
 
-    def fit_centroids(self, points: np.ndarray, num_centroids: int) -> np.ndarray:
+    def predict(self, series_array: np.ndarray) -> Tuple[Literal[0, 1], np.ndarray]:
         """
-        Computes centroids for a given array of datapoints
-        @param points: array of shape (num_points, dimension)
-        @param num_centroids: the number of centroids to use
-        @return: array of shape (num_centroids, dimension)
+        Predicts class index for given series
+        @param series_array:
+        @return: tuple with class index (0 or 1) and ndarray with two scores for each class
         """
-        centroids = fuzz.cmeans(points.T, num_centroids, **self.cmeans_params)[0]
-        return centroids
-
-    def predict_memberships(self, points: np.ndarray, centroids: np.ndarray) -> np.ndarray:
-        """
-        Computes membership degrees of given points to given centroids
-        @param points: array of shape (num_points, dimension)
-        @param centroids: array of shape (num_centroids, dimension)
-        @return: array of shape (num_points, num_centroids)
-        """
-        return fuzz.cmeans_predict(points.T, centroids, **self.cmeans_params)[0].T
-
-    def predict(self, series_array: np.ndarray) -> Tuple[int, float]:
         if not self.is_fitted:
             raise RuntimeError("Base classifier has not been fitted")
 
-        membership_matrix = self.fit_centroids()
+        membership_matrix = self.cmeans_transformer.transform(series_array)
         prediction = computing_backend.predict_series_class_idx(membership_matrix, *self._uwv_matrices,
                                                                 self._previous_considered_indices, self._move)
         return prediction[0], prediction[1]
