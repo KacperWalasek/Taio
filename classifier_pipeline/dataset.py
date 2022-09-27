@@ -9,7 +9,6 @@ T = TypeVar('T')
 
 
 class SeriesDataset:
-
     ALL_OTHER_LABEL = "all_other"
 
     def truncate(self, indices_to_leave: Tuple[int]) -> "SeriesDataset":
@@ -21,7 +20,7 @@ class SeriesDataset:
     def make_one_vs_all(self, reference_class_idx: int):
         other_series_list = []
         fraction_to_take = 1. / (len(self._items - 1))
-        for i, item in enumerate(self._items)
+        for i, item in enumerate(self._items):
             if i != reference_class_idx:
                 num_series_to_take = np.ceil(fraction_to_take * len(item.series_list))
                 other_series_list.extend(random.sample(item.series_list, num_series_to_take))

@@ -4,6 +4,7 @@ from typing import NamedTuple, List
 import numpy as np
 
 from classifier_pipeline.dataset import SeriesDataset
+from classifier_pipeline.get_root import get_root
 
 ClassDir = NamedTuple("ClassDir", [('name', str), ('path', str)])
 
@@ -12,15 +13,19 @@ class DataReader:
     TRAIN_SUBDIR = "Train"
     TEST_SUBDIR = "Test"
 
-    def read_preprocess_train(self, root_dir: str, dataset_name: str) -> SeriesDataset:
-        return self._read_preprocess(root_dir, dataset_name, self.TRAIN_SUBDIR)
+    def __init__(self, dir_name: str, dataset_name: str):
+        self.dir_path = dir_name
+        self.dataset_name = dataset_name
 
-    def read_preprocess_test(self, root_dir: str, dataset_name: str) -> SeriesDataset:
-        return self._read_preprocess(root_dir, dataset_name, self.TEST_SUBDIR)
+    def read_preprocess_train(self) -> SeriesDataset:
+        return self._read_preprocess(self.TRAIN_SUBDIR)
 
-    def _read_preprocess(self, root_dir: str, dataset_name: str, subdir: str) -> SeriesDataset:
+    def read_preprocess_test(self) -> SeriesDataset:
+        return self._read_preprocess(self.TEST_SUBDIR)
+
+    def _read_preprocess(self, subdir: str) -> SeriesDataset:
         class_dirs = [ClassDir(name=entry.name, path=entry.path) for entry in
-                      os.scandir(f"{root_dir}/{dataset_name}/{subdir}")
+                      os.scandir(get_root() / self.dir_name / self.dataset_name / subdir)
                       if entry.is_dir()]
         ret = SeriesDataset()
         for class_dir in class_dirs:
