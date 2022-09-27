@@ -12,7 +12,7 @@ class SeriesDataset:
 
     ALL_OTHER_LABEL = "all_other"
 
-    def truncate(self, indices_to_leave: List[int]) -> "SeriesDataset":
+    def truncate(self, indices_to_leave: Tuple[int]) -> "SeriesDataset":
         return SeriesDataset([self._items[idx] for idx in indices_to_leave])
 
     def transform(self, mapping: Callable[[np.ndarray], T]) -> Tuple[Tuple[T]]:

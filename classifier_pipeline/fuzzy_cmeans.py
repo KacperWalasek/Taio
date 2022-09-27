@@ -24,7 +24,7 @@ class CMeansComputer:
         Computes centroids
         @param points: ndarray of shape (num_points, dimension)
         @param num_clusters: number of clusters in the fuzzy space
-        @return: fit centroids (cluster centers)
+        @return: fit centroids, ndarray of shape (num_centroids, dimension)
         """
         centroids = fuzz.cmeans(points.T, num_clusters, **self.cmeans_params)[0]
         return centroids
