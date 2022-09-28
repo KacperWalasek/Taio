@@ -18,6 +18,7 @@ class ClassifierPipeline:
             level=self.args.loglevel,
             datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger("main")
+        self.logger.info("ClassifierPipeline init")
 
     def run(self):
         self.logger.info("Reading data...")
@@ -38,7 +39,7 @@ class ClassifierPipeline:
         self.logger.info(f"Done evaluating classifier, {train_acc=}, {test_acc=}")
 
         self.logger.info("Saving the results")
-        results_saver = self.get_results_saver(self.args.data_dir, self.args.dataset)
+        results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
         results_saver.save(self.args.method, classifier_config, train_acc, test_acc)
         self.logger.info("Done saving the results")
 
@@ -72,7 +73,7 @@ class ClassifierPipeline:
         parser.add_argument('--method', choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
                                                  'combined_symmetric_1_vs_1'], required=True)
         parser.add_argument('--test-length-percentages', type=float, nargs="+", default=[1], help="TODO")
-        parser.add_argument('--results_dir', default="results",
+        parser.add_argument('--results-dir', default="results",
                             help="a directory in which to put results")
         parser.add_argument("dataset", help="name of the dataset to test")
 
@@ -83,5 +84,3 @@ class ClassifierPipeline:
         )
 
         return parser
-
-ClassifierPipeline()
