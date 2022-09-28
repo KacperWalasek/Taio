@@ -1,4 +1,4 @@
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 
 import numpy as np
 import skfuzzy as fuzz
@@ -9,14 +9,15 @@ class CMeansComputer:
     Class for calculating c-means centroids
     """
 
-    def __init__(self, config: MutableMapping):
+    def __init__(self, config: Mapping):
         """
         @param config: config to use
         """
         self.is_fitted = False
-        cmeans_config = config["FuzzyCMeans"]
         self.cmeans_params = {
-            "m": cmeans_config["M"], "error": cmeans_config["Error"], "maxiter": cmeans_config["Maxiter"]
+            "m": config.getint("FuzzyCMeans", "M"),
+            "error": config.getfloat("FuzzyCMeans", "Error"),
+            "maxiter": int(config.getfloat("FuzzyCMeans", "Maxiter"))
         }
 
     def compute(self, points: np.ndarray, num_clusters: int) -> np.ndarray:
@@ -35,14 +36,15 @@ class CMeansTransformer:
     Class for transforming series into fuzzy space
     """
 
-    def __init__(self, config: MutableMapping, centroids: np.ndarray):
+    def __init__(self, config: Mapping, centroids: np.ndarray):
         """
         @param config: config to use
         @param centroids: ndarray of shape (num_centroids, dimension)
         """
-        cmeans_config = config["FuzzyCMeans"]
         self.cmeans_params = {
-            "m": cmeans_config["M"], "error": cmeans_config["Error"], "maxiter": cmeans_config["Maxiter"]
+            "m": config.getint("FuzzyCMeans", "M"),
+            "error": config.getfloat("FuzzyCMeans", "Error"),
+            "maxiter": int(config.getfloat("FuzzyCMeans", "Maxiter"))
         }
         self.centroids = centroids
 
@@ -51,7 +53,7 @@ class CMeansTransformer:
         """
         @return: number of centroids
         """
-        return self.centroids.shape[1]
+        return self.centroids.shape[0]
 
     def transform(self, points: np.ndarray) -> np.ndarray:
         """
@@ -59,7 +61,4 @@ class CMeansTransformer:
         @param points: ndarray of shape (num_points, dimension)
         @return: ndarray of shape (num_points, num_clusters)
         """
-        if not self.is_fitted:
-            raise RuntimeError("CMeans model has not been fitted")
-
         return fuzz.cmeans_predict(points.T, self.centroids, **self.cmeans_params)[0].T

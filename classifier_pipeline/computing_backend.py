@@ -12,8 +12,8 @@ def sigmoid(x):
 
 
 @nb.njit(cache=True)
-def split_weights_array(array, previous_considered_indices_size, concept_count):
-    w_matrix_offset = previous_considered_indices_size * concept_count
+def split_weights_array(array, moving_window_size, concept_count):
+    w_matrix_offset = moving_window_size * concept_count
     v_matrix_offset = w_matrix_offset + concept_count ** 2
     u_matrix = array[:w_matrix_offset].reshape(-1, concept_count)
     w_matrix = array[w_matrix_offset:v_matrix_offset].reshape(-1, concept_count)
@@ -23,10 +23,8 @@ def split_weights_array(array, previous_considered_indices_size, concept_count):
 
 @nb.njit(cache=True)
 def predict_series_class_idx(
-        membership_matrix, u_matrix, w_matrix, v_matrix, previous_considered_indices, move
+        membership_matrix, u_matrix, w_matrix, v_matrix, moving_window_size, moving_window_stride
 ):
-    max_previous_index = previous_considered_indices.max()
-
     total_votes = np.zeros(2, dtype=np.int32)
     total_weights = np.zeros(2)
 
@@ -37,15 +35,12 @@ def predict_series_class_idx(
     predicted_concept_membership_array = np.empty(concept_count)
     predicted_class_memberships = np.empty(2)
 
-    for i in range(max_previous_index, membership_matrix.shape[0], move):
+    for i in range(moving_window_size, membership_matrix.shape[0], moving_window_stride):
 
         for j in range(concept_count):
             a_array[j] = 0
-            for k in range(previous_considered_indices.size):
-                a_array[j] += (
-                        membership_matrix[i - previous_considered_indices[k], j]
-                        * u_matrix[k, j]
-                )
+            for k in range(moving_window_size):
+                a_array[j] += (membership_matrix[i - k, j] * u_matrix[k, j])
         a_array = sigmoid(a_array)
 
         for j in range(concept_count):
@@ -83,8 +78,7 @@ def predict_series_class_idx(
 
 
 @nb.njit(cache=True)
-def fitness_func(solution, membership_matrices: Tuple[Tuple[np.ndarray]], moving_window_size: int,
-                 moving_window_stride: int):
+def fitness_func(solution, membership_matrices, moving_window_size, moving_window_stride):
     u_matrix, w_matrix, v_matrix = split_weights_array(
         solution, moving_window_size, membership_matrices[0][0].shape[1]
     )

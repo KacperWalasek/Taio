@@ -14,7 +14,7 @@ class DataReader:
     TEST_SUBDIR = "Test"
 
     def __init__(self, dir_name: str, dataset_name: str):
-        self.dir_path = dir_name
+        self.dir_name = dir_name
         self.dataset_name = dataset_name
 
     def read_preprocess_train(self) -> SeriesDataset:
@@ -31,9 +31,9 @@ class DataReader:
         for class_dir in class_dirs:
             series_list: List[np.ndarray] = []
             for file in os.scandir(class_dir.path):
-                series_array = self._read_preprocess_single_series(f"{class_dir.path}/{file}")
+                series_array = self._read_preprocess_single_series(f"{class_dir.path}/{file.name}")
                 series_list.append(series_array)
-            ret.add_item(class_dir.name, series_list)
+            ret.add_class_item(class_dir.name, series_list)
         return ret
 
     def _read_preprocess_single_series(self, filepath: str) -> np.ndarray:
@@ -42,7 +42,8 @@ class DataReader:
         @param filepath: a path to a series stored in csv format
         @return: ndarray of shape (num_observations, 2*dimension)
         """
-        series_array = np.genfromtxt(filepath, delimiter=",", ndmin=2)
+        series_array = np.genfromtxt(filepath, delimiter=",")
+        series_array = series_array.reshape((series_array.shape[0], -1))
         series_array = self._remove_nans(series_array)
         series_array = self._remove_redundant_rows(series_array)
         series_array = self._add_adjacent_differences(series_array)

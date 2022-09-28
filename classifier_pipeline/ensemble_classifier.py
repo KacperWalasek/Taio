@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 from logging import Logger
 from typing import Literal, Tuple, List, NamedTuple, Optional
 
@@ -15,21 +15,22 @@ BinaryClassifierItem = NamedTuple('BinaryClassifierItem', [('model', BinaryClass
 
 class EnsembleClassifier(ABC):
 
-    def build_classifier(self, method: Literal['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
-                                               'combined_symmetric_1_vs_1'], config: MutableMapping):
+    @staticmethod
+    def build_classifier(method: Literal['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
+                                         'combined_symmetric_1_vs_1'], config: Mapping, logger: Logger):
         classifiers = {
             '1_vs_all': OneVsAllClassifier,
             'asymmetric_1_vs_1': AsymmetricOneVsOneClassifier,
             'symmetric_1_vs_1': SymmetricOneVsOneClassifier,
             'combined_symmetric_1_vs_1': CombinedOneVsOneClassifier
         }
-        return classifiers[method](config)
+        return classifiers[method](config, logger)
 
-    def __init__(self, config: MutableMapping, logger: Logger):
+    def __init__(self, config: Mapping, logger: Logger):
         self.config = config
         self.logger = logger
         self.binary_classifiers: Tuple[BinaryClassifierItem] = None
-        self.fcm_concept_count = config["BaseClassifier"]["FCMConceptCount"]
+        self.fcm_concept_count = config.getint("BaseClassifier", "FCMConceptCount")
         self.n_classes: int = None
 
     @abstractmethod
@@ -52,14 +53,14 @@ class EnsembleClassifier(ABC):
             predicted_idx, predicted_weights = binary_classifier.predict(series)
             if (predicted_class := reference_classes[predicted_idx]) is not None:
                 series_class_votes[predicted_class] += 1
-            for i, predicted_weight in predicted_weights:
+            for i, predicted_weight in enumerate(predicted_weights):
                 if reference_classes[i] is not None:
-                    series_class_weights += predicted_weight
+                    series_class_weights[reference_classes[i]] += predicted_weight
         # Below lines work for both situations:
         # 1. There is only one max_votes_index
         # 2. There is more than one max_votes_index, then choose among them the one with maximum weight
-        max_votes_indices = np.where(series_class_votes == series_class_votes.max())
-        return max_votes_indices[np.argmax(series_class_weights[max_votes_indices])]
+        max_votes_indices = np.flatnonzero(series_class_votes == series_class_votes.max())
+        return max_votes_indices[np.argmax(series_class_weights[max_votes_indices])].item()
 
     def evaluate(self, dataset: SeriesDataset) -> float:
         """
@@ -81,9 +82,6 @@ class EnsembleClassifier(ABC):
 
 class OneVsAllClassifier(EnsembleClassifier):
 
-    def __init__(self, config: MutableMapping, logger: Logger):
-        super().__init__(config)
-
     def fit(self, dataset: SeriesDataset) -> EnsembleClassifier:
         binary_classifiers: List[BinaryClassifierItem] = []
 
@@ -92,7 +90,7 @@ class OneVsAllClassifier(EnsembleClassifier):
             assert idx_vs_all_dataset.get_label(0) != SeriesDataset.ALL_OTHER_LABEL
             assert idx_vs_all_dataset.get_label(1) == SeriesDataset.ALL_OTHER_LABEL
             cmeans_computer = CMeansComputer(self.config)
-            centroids = cmeans_computer.compute(np.vstack(idx_vs_all_dataset.get_series_list([0])),
+            centroids = cmeans_computer.compute(np.vstack(idx_vs_all_dataset.get_series_list(0)),
                                                 self.fcm_concept_count)
             cmeans_transformer = CMeansTransformer(self.config, centroids)
             assert cmeans_transformer.num_centroids == self.fcm_concept_count
@@ -119,7 +117,8 @@ class AsymmetricOneVsOneClassifier(EnsembleClassifier):
                 if class_idx_1 != class_idx_2:
                     truncated_dataset = dataset.truncate((class_idx_1, class_idx_2))
                     cmeans_computer = CMeansComputer(self.config)
-                    centroids = cmeans_computer.compute(np.vstack(truncated_dataset.get_series_list(0)))
+                    centroids = cmeans_computer.compute(np.vstack(truncated_dataset.get_series_list(0)),
+                                                        self.fcm_concept_count)
                     cmeans_transformer = CMeansTransformer(self.config, centroids)
                     assert cmeans_transformer.num_centroids == self.fcm_concept_count
 
@@ -135,7 +134,7 @@ class AsymmetricOneVsOneClassifier(EnsembleClassifier):
 
 
 class SymmetricOneVsOneClassifier(EnsembleClassifier):
-    def __init__(self, config: MutableMapping, logger: Logger):
+    def __init__(self, config: Mapping, logger: Logger):
         super().__init__(config, logger)
         if (self.fcm_concept_count % 2) != 0:
             raise ValueError(

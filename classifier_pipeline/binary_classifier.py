@@ -1,26 +1,26 @@
 """
 BinaryClassifierModel model (2 classification classes).
 """
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 from functools import partial
 from logging import Logger
 from typing import List, Literal, Tuple
 
 import numpy as np
-import skfuzzy as fuzz
 from geneticalgorithm2 import AlgorithmParams
 from geneticalgorithm2 import geneticalgorithm2 as ga
 
 from classifier_pipeline import computing_backend
-from classifier_pipeline.fuzzy_cmeans import CMeansTransformer
 from classifier_pipeline.dataset import SeriesDataset
+from classifier_pipeline.fuzzy_cmeans import CMeansTransformer
 
 
 class BinaryClassifier:
     """
     Base classifier class
     """
-    def __init__(self, config: MutableMapping, cmeans_transformer: CMeansTransformer, logger: Logger):
+
+    def __init__(self, config: Mapping, cmeans_transformer: CMeansTransformer, logger: Logger):
         """
         @param config: config to use
         @param cmeans_transformer:
@@ -28,22 +28,20 @@ class BinaryClassifier:
         """
         self.logger = logger
 
-        base_classifier_config = config["BaseClassifier"]
-        self.moving_window_size = base_classifier_config['MovingWindowSize']
-        self.moving_window_stride = base_classifier_config['MovingWindowStride']
+        self.moving_window_size = config.getint("BaseClassifier", 'MovingWindowSize')
+        self.moving_window_stride = config.getint("BaseClassifier", 'MovingWindowStride')
 
-        ga_config = config["GeneticAlgorithm"]
         self.ga_params = {
-            "max_num_iteration": ga_config["MaxNumIteration"],
-            "population_size": ga_config["PopulationSize"],
-            "max_iteration_without_improv": ga_config["MaxIterationWithoutImprov"],
-            "mutation_probability": ga_config["MutationProbability"]
+            "max_num_iteration": config.getint("GeneticAlgorithm", "MaxNumIteration"),
+            "population_size": config.getint("GeneticAlgorithm", "PopulationSize"),
+            "max_iteration_without_improv": config.getint("GeneticAlgorithm", "MaxIterationWithoutImprov"),
+            "mutation_probability": config.getfloat("GeneticAlgorithm", "MutationProbability"),
         }
-        ga_run_config = config["GeneticAlgorithmRun"]
+
         self.ga_run_params = {
-            "no_plot": ga_run_config["NoPlot"],
-            "disable_printing": ga_run_config["DisablePrinting"],
-            "disable_progress_bar": ga_run_config["DisableProgressBar"],
+            "no_plot": config.getboolean("GeneticAlgorithmRun", "NoPlot"),
+            "disable_printing": config.getboolean("GeneticAlgorithmRun", "DisablePrinting"),
+            "disable_progress_bar": config.getboolean("GeneticAlgorithmRun", "DisableProgressBar"),
         }
         self.cmeans_transformer = cmeans_transformer
         self.is_fitted = False
@@ -65,21 +63,21 @@ class BinaryClassifier:
 
         trained_array_size = (
                 self.moving_window_size * self.cmeans_transformer.num_centroids
-                + self.fcm_concept_count ** 2
-                + 2 * self.fcm_concept_count
+                + self.cmeans_transformer.num_centroids ** 2
+                + 2 * self.cmeans_transformer.num_centroids
         )
         bounds = np.array([[-1, 1]] * trained_array_size)
         ga_model = ga(
             function=fitness_func,
             dimension=trained_array_size,
             variable_boundaries=bounds,
+            variable_type="real",
+            function_timeout=30,
             algorithm_parameters=AlgorithmParams(**self.ga_params)
         )
         ga_model.run(
             set_function=ga.set_function_multiprocess(fitness_func),
             stop_when_reached=0,
-            variable_type="real",
-            function_timeout=30,
             **self.ga_run_params
         )
         solution = ga_model.output_dict["variable"]
@@ -88,7 +86,7 @@ class BinaryClassifier:
             f"{ga_model.output_dict['function'] / sum(len(x) for x in memberships)}"
         )
 
-        self.weights = computing_backend.split_weights_array(solution, self.moving_window_size, self.fcm_concept_count)
+        self.weights = computing_backend.split_weights_array(solution, self.moving_window_size, self.cmeans_transformer.num_centroids)
         self.is_fitted = True
         return self
 
@@ -102,6 +100,6 @@ class BinaryClassifier:
             raise RuntimeError("Base classifier has not been fitted")
 
         membership_matrix = self.cmeans_transformer.transform(series_array)
-        prediction = computing_backend.predict_series_class_idx(membership_matrix, *self._uwv_matrices,
-                                                                self._previous_considered_indices, self._move)
+        prediction = computing_backend.predict_series_class_idx(
+            membership_matrix, *self.weights,self.moving_window_size, self.moving_window_stride)
         return prediction[0], prediction[1]

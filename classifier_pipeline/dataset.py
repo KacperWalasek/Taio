@@ -1,4 +1,5 @@
 import random
+from math import ceil
 from typing import NamedTuple, List, Tuple, Iterable, TypeVar, Callable
 
 import numpy as np
@@ -14,22 +15,22 @@ class SeriesDataset:
     def truncate(self, indices_to_leave: Tuple[int]) -> "SeriesDataset":
         return SeriesDataset([self._items[idx] for idx in indices_to_leave])
 
-    def transform(self, mapping: Callable[[np.ndarray], T]) -> Tuple[Tuple[T]]:
-        return ((mapping(x) for x in item.series_list) for item in self._items)
+    def transform(self, mapping: Callable[[np.ndarray], T]) -> Tuple[List[T]]:
+        return tuple([mapping(x) for x in item.series_list] for item in self._items)
 
     def make_one_vs_all(self, reference_class_idx: int):
         other_series_list = []
-        fraction_to_take = 1. / (len(self._items - 1))
+        fraction_to_take = 1. / (len(self._items) - 1)
         for i, item in enumerate(self._items):
             if i != reference_class_idx:
-                num_series_to_take = np.ceil(fraction_to_take * len(item.series_list))
+                num_series_to_take = ceil(fraction_to_take * len(item.series_list))
                 other_series_list.extend(random.sample(item.series_list, num_series_to_take))
         new_items = [self._items[reference_class_idx],
                      DatasetItem(label=self.ALL_OTHER_LABEL, series_list=tuple(other_series_list))]
         return SeriesDataset(new_items)
 
-    def __init__(self, items: List[DatasetItem] = []):
-        self._items: List[DatasetItem] = items
+    def __init__(self, items: List[DatasetItem] = None):
+        self._items: List[DatasetItem] = items or []
 
     @property
     def n_classes(self) -> int:

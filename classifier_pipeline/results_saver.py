@@ -1,12 +1,8 @@
-import configparser
-from collections.abc import MutableMapping
-from pathlib import Path
+from collections.abc import Mapping
 
 import pandas as pd
 
-
-def get_root() -> Path:
-    return Path(__file__).parent.parent.resolve()
+from classifier_pipeline.get_root import get_root
 
 
 class ResultsSaver:
@@ -17,7 +13,7 @@ class ResultsSaver:
     def __init__(self, dir_name: str, dataset_name: str):
         self.filepath = get_root() / dir_name / f"{dataset_name}.csv"
 
-    def save(self, method: str, config: MutableMapping, train_acc: float, test_acc: float):
+    def save(self, method: str, config: Mapping, train_acc: float, test_acc: float):
         self.filepath.parent.mkdir(parents=True, exist_ok=True)
         config_params_dict = dict((f"{s.lower()}_{k}", v) for s in config.sections() for k, v in config.items(s))
         df = pd.DataFrame([{
@@ -25,5 +21,5 @@ class ResultsSaver:
             "train_acc": train_acc,
             "test_acc": test_acc,
             **config_params_dict
-        }])
+        }]).apply(pd.to_numeric, errors='ignore')
         df.to_csv(self.filepath, mode='a', index=False)

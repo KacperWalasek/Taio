@@ -1,5 +1,6 @@
-from .classifier_pipeline import ClassifierPipeline
+from classifier_pipeline.entrypoint import ClassifierPipeline
 
 
 def main():
-    ClassifierPipeline()
+    pipeline = ClassifierPipeline()
+    pipeline.run()
