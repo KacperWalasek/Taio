@@ -22,4 +22,5 @@ class ResultsSaver:
             "test_acc": test_acc,
             **config_params_dict
         }]).apply(pd.to_numeric, errors='ignore')
-        df.to_csv(self.filepath, mode='a', index=False)
+        df.to_csv(self.filepath, mode='a', index=False,
+                  header=not (self.filepath.exists() and self.filepath.stat().st_size > 0))
