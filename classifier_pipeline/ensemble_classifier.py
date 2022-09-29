@@ -131,6 +131,7 @@ class AsymmetricOneVsOneClassifier(EnsembleClassifier):
                         BinaryClassifierItem(model=binary_classifier, reference_classes=(class_idx_1, class_idx_2)))
 
         assert len(binary_classifiers) == dataset.n_classes * (dataset.n_classes - 1)
+        self.n_classes = dataset.n_classes
         self.binary_classifiers = tuple(binary_classifiers)
 
 
@@ -164,6 +165,7 @@ class SymmetricOneVsOneClassifier(EnsembleClassifier):
                     BinaryClassifierItem(model=binary_classifier, reference_classes=(class_idx_1, class_idx_2)))
 
         assert 2 * len(binary_classifiers) == dataset.n_classes * (dataset.n_classes - 1)
+        self.n_classes = dataset.n_classes
         self.binary_classifiers = tuple(binary_classifiers)
 
 
@@ -188,4 +190,5 @@ class CombinedOneVsOneClassifier(EnsembleClassifier):
                     BinaryClassifierItem(model=binary_classifier, reference_classes=(class_idx_1, class_idx_2)))
 
         assert 2 * len(binary_classifiers) == dataset.n_classes * (dataset.n_classes - 1)
+        self.n_classes = dataset.n_classes
         self.binary_classifiers = tuple(binary_classifiers)
