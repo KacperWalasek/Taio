@@ -4,7 +4,7 @@ from typing import NamedTuple, List, Tuple, Iterable, TypeVar, Callable
 
 import numpy as np
 
-DatasetItem = NamedTuple('DatasetItem', [('label', str), ('series_list', Tuple[np.ndarray])])
+DatasetItem = NamedTuple('DatasetItem', [('label', str), ('series_list', Tuple[np.ndarray, ...])])
 
 T = TypeVar('T')
 
@@ -12,10 +12,10 @@ T = TypeVar('T')
 class SeriesDataset:
     ALL_OTHER_LABEL = "all_other"
 
-    def truncate(self, indices_to_leave: Tuple[int]) -> "SeriesDataset":
+    def truncate(self, indices_to_leave: Tuple[int, ...]) -> "SeriesDataset":
         return SeriesDataset([self._items[idx] for idx in indices_to_leave])
 
-    def transform(self, mapping: Callable[[np.ndarray], T]) -> Tuple[List[T]]:
+    def transform(self, mapping: Callable[[np.ndarray], T]) -> Tuple[List[T], ...]:
         return tuple([mapping(x) for x in item.series_list] for item in self._items)
 
     def make_one_vs_all(self, reference_class_idx: int):

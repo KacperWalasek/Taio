@@ -1,5 +1,5 @@
+import configparser
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
 from logging import Logger
 from typing import Literal, Tuple, List, NamedTuple, Optional
 
@@ -17,7 +17,8 @@ class EnsembleClassifier(ABC):
 
     @staticmethod
     def build_classifier(method: Literal['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
-                                         'combined_symmetric_1_vs_1'], config: Mapping, logger: Logger):
+                                         'combined_symmetric_1_vs_1'], config: configparser.ConfigParser,
+                         logger: Logger):
         classifiers = {
             '1_vs_all': OneVsAllClassifier,
             'asymmetric_1_vs_1': AsymmetricOneVsOneClassifier,
@@ -26,12 +27,12 @@ class EnsembleClassifier(ABC):
         }
         return classifiers[method](config, logger)
 
-    def __init__(self, config: Mapping, logger: Logger):
+    def __init__(self, config: configparser.ConfigParser, logger: Logger):
         self.config = config
         self.logger = logger
-        self.binary_classifiers: Tuple[BinaryClassifierItem] = None
+        self.binary_classifiers: Optional[Tuple[BinaryClassifierItem, ...]] = None
         self.fcm_concept_count = config.getint("BaseClassifier", "FCMConceptCount")
-        self.n_classes: int = None
+        self.n_classes: Optional[int] = None
 
     @abstractmethod
     def fit(self, dataset: SeriesDataset) -> None:
@@ -82,7 +83,7 @@ class EnsembleClassifier(ABC):
 
 class OneVsAllClassifier(EnsembleClassifier):
 
-    def fit(self, dataset: SeriesDataset) -> EnsembleClassifier:
+    def fit(self, dataset: SeriesDataset) -> None:
         binary_classifiers: List[BinaryClassifierItem] = []
 
         for class_idx in range(dataset.n_classes):
@@ -130,11 +131,11 @@ class AsymmetricOneVsOneClassifier(EnsembleClassifier):
                         BinaryClassifierItem(model=binary_classifier, reference_classes=(class_idx_1, class_idx_2)))
 
         assert 2 * len(binary_classifiers) == dataset.n_classes * (dataset.n_classes - 1)
-        self.binary_classifiers = binary_classifiers
+        self.binary_classifiers = tuple(binary_classifiers)
 
 
 class SymmetricOneVsOneClassifier(EnsembleClassifier):
-    def __init__(self, config: Mapping, logger: Logger):
+    def __init__(self, config: configparser.ConfigParser, logger: Logger):
         super().__init__(config, logger)
         if (self.fcm_concept_count % 2) != 0:
             raise ValueError(
@@ -163,12 +164,12 @@ class SymmetricOneVsOneClassifier(EnsembleClassifier):
                     BinaryClassifierItem(model=binary_classifier, reference_classes=(class_idx_1, class_idx_2)))
 
         assert len(binary_classifiers) == dataset.n_classes * (dataset.n_classes - 1)
-        self.binary_classifiers = binary_classifiers
+        self.binary_classifiers = tuple(binary_classifiers)
 
 
 class CombinedOneVsOneClassifier(EnsembleClassifier):
     def fit(self, dataset: SeriesDataset) -> None:
-        binary_classifiers: List[BinaryClassifier] = []
+        binary_classifiers: List[BinaryClassifierItem] = []
 
         for class_idx_1 in range(dataset.n_classes):
             for class_idx_2 in range(class_idx_1 + 1, dataset.n_classes):
@@ -187,4 +188,4 @@ class CombinedOneVsOneClassifier(EnsembleClassifier):
                     BinaryClassifierItem(model=binary_classifier, reference_classes=(class_idx_1, class_idx_2)))
 
         assert len(binary_classifiers) == dataset.n_classes * (dataset.n_classes - 1)
-        self.binary_classifiers = binary_classifiers
+        self.binary_classifiers = tuple(binary_classifiers)

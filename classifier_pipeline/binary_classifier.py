@@ -1,10 +1,10 @@
 """
 BinaryClassifierModel model (2 classification classes).
 """
-from collections.abc import Mapping
+import configparser
 from functools import partial
 from logging import Logger
-from typing import List, Literal, Tuple
+from typing import List, Literal, Tuple, Optional
 
 import numpy as np
 from geneticalgorithm2 import AlgorithmParams
@@ -20,7 +20,7 @@ class BinaryClassifier:
     Base classifier class
     """
 
-    def __init__(self, config: Mapping, cmeans_transformer: CMeansTransformer, logger: Logger):
+    def __init__(self, config: configparser.ConfigParser, cmeans_transformer: CMeansTransformer, logger: Logger):
         """
         @param config: config to use
         @param cmeans_transformer:
@@ -45,7 +45,7 @@ class BinaryClassifier:
         }
         self.cmeans_transformer = cmeans_transformer
         self.is_fitted = False
-        self.weights: List[np.ndarray] = None
+        self.weights: Optional[List[np.ndarray]] = None
 
     def fit(self, dataset: SeriesDataset) -> "BinaryClassifier":
         """
@@ -86,7 +86,8 @@ class BinaryClassifier:
             f"{ga_model.output_dict['function'] / sum(len(x) for x in memberships)}"
         )
 
-        self.weights = computing_backend.split_weights_array(solution, self.moving_window_size, self.cmeans_transformer.num_centroids)
+        self.weights = computing_backend.split_weights_array(solution, self.moving_window_size,
+                                                             self.cmeans_transformer.num_centroids)
         self.is_fitted = True
         return self
 
@@ -101,5 +102,5 @@ class BinaryClassifier:
 
         membership_matrix = self.cmeans_transformer.transform(series_array)
         prediction = computing_backend.predict_series_class_idx(
-            membership_matrix, *self.weights,self.moving_window_size, self.moving_window_stride)
+            membership_matrix, *self.weights, self.moving_window_size, self.moving_window_stride)
         return prediction[0], prediction[1]

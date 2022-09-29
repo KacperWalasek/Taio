@@ -1,7 +1,7 @@
 import argparse
 import configparser
 import logging
-from typing import List, Mapping
+from typing import List, Literal
 
 from classifier_pipeline.data_reader import DataReader
 from classifier_pipeline.ensemble_classifier import EnsembleClassifier
@@ -54,7 +54,9 @@ class ClassifierPipeline:
         return ret
 
     @staticmethod
-    def build_classifier(method: str, classifier_config: Mapping, logger: logging.Logger) -> EnsembleClassifier:
+    def build_classifier(
+            method: Literal['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1', 'combined_symmetric_1_vs_1'],
+            classifier_config: configparser.ConfigParser, logger: logging.Logger) -> EnsembleClassifier:
         return EnsembleClassifier.build_classifier(method, classifier_config, logger)
 
     @staticmethod

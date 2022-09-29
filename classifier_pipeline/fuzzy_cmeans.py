@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+import configparser
 
 import numpy as np
 import skfuzzy as fuzz
@@ -9,7 +9,7 @@ class CMeansComputer:
     Class for calculating c-means centroids
     """
 
-    def __init__(self, config: Mapping):
+    def __init__(self, config: configparser.ConfigParser):
         """
         @param config: config to use
         """
@@ -36,7 +36,7 @@ class CMeansTransformer:
     Class for transforming series into fuzzy space
     """
 
-    def __init__(self, config: Mapping, centroids: np.ndarray):
+    def __init__(self, config: configparser.ConfigParser, centroids: np.ndarray):
         """
         @param config: config to use
         @param centroids: ndarray of shape (num_centroids, dimension)
