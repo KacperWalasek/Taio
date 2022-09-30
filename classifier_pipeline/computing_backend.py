@@ -35,12 +35,12 @@ def predict_series_class_idx(
     predicted_concept_membership_array = np.empty(concept_count)
     predicted_class_memberships = np.empty(2)
 
-    for i in range(moving_window_size, membership_matrix.shape[0], moving_window_stride):
+    for i in range(0, membership_matrix.shape[0] - moving_window_size + 1, moving_window_stride):
 
         for j in range(concept_count):
             a_array[j] = 0
             for k in range(moving_window_size):
-                a_array[j] += (membership_matrix[i - k, j] * u_matrix[k, j])
+                a_array[j] += (membership_matrix[i + k, j] * u_matrix[k, j])
         a_array = sigmoid(a_array)
 
         for j in range(concept_count):
