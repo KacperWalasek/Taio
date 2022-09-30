@@ -6,5 +6,5 @@
 
 source ~/.pyenv/versions/py310/bin/activate
 
-python -m -v data_converter {dataset}
+python -m data_converter -v {dataset}
 python -m classifier_pipeline {dataset} --methods {methods} --configs {configs} --test-length-fractions {test_length_fractions} -v
