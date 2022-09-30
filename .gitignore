@@ -326,3 +326,4 @@ svmFile.joblib
 start_*
 !start_template
 data/*
+queue_all.sh
