@@ -29,39 +29,44 @@ class ClassifierPipeline:
         self.logger.info("Done reading data")
 
         config_filenames: List[str] = self.args.configs if self.args.configs else [self.args.config]
+        methods: List[Literal[
+            '1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1', 'combined_symmetric_1_vs_1']] = (
+            self.args.methods if self.args.methods else [self.args.method])
 
         for rep in range(self.args.num_reps):
-            for config_name in config_filenames:
-                self.logger.info(f"Starting pipeline, {rep=}, {config_name=}")
+            for method in methods:
+                for config_name in config_filenames:
+                    self.logger.info(f"Starting pipeline, {rep=}, {config_name=}, {method=}")
 
-                self.logger.info(f"Reading config {config_name=}...")
-                classifier_config = self.get_classifier_config(f"{self.args.config_dir}/{config_name}")
-                self.logger.info("Building and fitting ensemble classifier...")
-                classifier = self.build_classifier(self.args.method, classifier_config, self.logger)
-                classifier.fit(data_train)
-                self.logger.info("Done building and fitting ensemble classifier")
+                    self.logger.info(f"Reading config {config_name=}...")
+                    classifier_config = self.get_classifier_config(f"{self.args.config_dir}/{config_name}")
+                    self.logger.info(f"Building and fitting ensemble classifier, {method=}...")
+                    classifier = self.build_classifier(method, classifier_config, self.logger)
+                    classifier.fit(data_train)
+                    self.logger.info("Done building and fitting ensemble classifier")
 
-                for series_length_fraction in self.args.test_length_fractions:
-                    self.logger.info(f"Preparing evaluation datasets {series_length_fraction=}...")
-                    data_train_truncated = data_train.truncate(series_length_fraction,
-                                                               self.get_min_series_length(classifier_config),
-                                                               self.logger)
-                    data_test_truncated = data_test.truncate(series_length_fraction,
-                                                             self.get_min_series_length(classifier_config), self.logger)
-                    self.logger.info(f"Done preparing evaluation datasets")
+                    for series_length_fraction in self.args.test_length_fractions:
+                        self.logger.info(f"Preparing evaluation datasets {series_length_fraction=}...")
+                        data_train_truncated = data_train.truncate(series_length_fraction,
+                                                                   self.get_min_series_length(classifier_config),
+                                                                   self.logger)
+                        data_test_truncated = data_test.truncate(series_length_fraction,
+                                                                 self.get_min_series_length(classifier_config),
+                                                                 self.logger)
+                        self.logger.info(f"Done preparing evaluation datasets")
 
-                    self.logger.info("Evaluating classifier...")
-                    train_acc = classifier.evaluate(data_train_truncated)
-                    test_acc = classifier.evaluate(data_test_truncated)
-                    self.logger.info(
-                        f"Done evaluating classifier, {series_length_fraction=}, {train_acc=}, {test_acc=}")
+                        self.logger.info("Evaluating classifier...")
+                        train_acc = classifier.evaluate(data_train_truncated)
+                        test_acc = classifier.evaluate(data_test_truncated)
+                        self.logger.info(
+                            f"Done evaluating classifier, {series_length_fraction=}, {train_acc=}, {test_acc=}")
 
-                    self.logger.info("Saving the results")
-                    results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
-                    results_saver.save(self.args.method, classifier_config, series_length_fraction, train_acc, test_acc)
-                    self.logger.info(f"Done saving the results, {series_length_fraction=}")
+                        self.logger.info("Saving the results")
+                        results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
+                        results_saver.save(method, classifier_config, series_length_fraction, train_acc, test_acc)
+                        self.logger.info(f"Done saving the results, {series_length_fraction=}")
 
-                self.logger.info(f"Finished pipeline, {rep=}, {config_name=}")
+                    self.logger.info(f"Finished pipeline, {rep=}, {config_name=}, {method=}")
 
     @staticmethod
     def get_data_reader(dir_name: str, dataset_name: str) -> DataReader:
@@ -95,11 +100,17 @@ class ClassifierPipeline:
                             help="a root directory with series data")
         parser.add_argument('--config-dir', default="configs",
                             help="a root directory with run configs")
+
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument('--config', help="name of the config file")
         group.add_argument('--configs', nargs='+', default=None, help="name of the configs file")
-        parser.add_argument('--method', default=None, choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
-                                                               'combined_symmetric_1_vs_1'], required=True)
+
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('--method', default=None, choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
+                                                              'combined_symmetric_1_vs_1'])
+        group.add_argument('--methods', default=None, nargs='+',
+                           choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1', 'combined_symmetric_1_vs_1'])
+
         parser.add_argument('--test-length-fractions', type=float, nargs="+", default=[1],
                             help="series length fractions for early classification to verify")
         parser.add_argument('--results-dir', default="results",
