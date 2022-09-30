@@ -19,6 +19,7 @@ class ClassifierPipeline:
             datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger("main")
         self.logger.info("ClassifierPipeline init")
+        self.logger.info(f"{self.args=}")
 
     def run(self) -> None:
         self.logger.info("Reading data...")
@@ -33,8 +34,8 @@ class ClassifierPipeline:
             for config_name in config_filenames:
                 self.logger.info(f"Starting pipeline, {rep=}, {config_name=}")
 
-                self.logger.info("Reading config...")
-                classifier_config = self.get_classifier_config(f"{self.args.config_dir}/{self.args.config}")
+                self.logger.info(f"Reading config {config_name=}...")
+                classifier_config = self.get_classifier_config(f"{self.args.config_dir}/{config_name}")
                 self.logger.info("Building and fitting ensemble classifier...")
                 classifier = self.build_classifier(self.args.method, classifier_config, self.logger)
                 classifier.fit(data_train)

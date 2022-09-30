@@ -11,7 +11,7 @@ T = TypeVar('T')
 
 
 class SeriesDataset:
-    ALL_OTHER_LABEL = "abbc43222b02436caa8c94dba0a68bd2"
+    ALL_OTHER_LABEL = "ALL_OTHERS"
 
     def select_classes(self, indices_to_leave: Tuple[int, ...]) -> "SeriesDataset":
         """
