@@ -116,7 +116,7 @@ class AsymmetricOneVsOneClassifier(EnsembleClassifier):
         for class_idx_1 in range(dataset.n_classes):
             for class_idx_2 in range(dataset.n_classes):
                 if class_idx_1 != class_idx_2:
-                    truncated_dataset = dataset.truncate((class_idx_1, class_idx_2))
+                    truncated_dataset = dataset.select_classes((class_idx_1, class_idx_2))
                     cmeans_computer = CMeansComputer(self.config)
                     centroids = cmeans_computer.compute(np.vstack(truncated_dataset.get_series_list(0)),
                                                         self.fcm_concept_count)
@@ -147,7 +147,7 @@ class SymmetricOneVsOneClassifier(EnsembleClassifier):
 
         for class_idx_1 in range(dataset.n_classes):
             for class_idx_2 in range(class_idx_1 + 1, dataset.n_classes):
-                truncated_dataset = dataset.truncate((class_idx_1, class_idx_2))
+                truncated_dataset = dataset.select_classes((class_idx_1, class_idx_2))
                 cmeans_computer = CMeansComputer(self.config)
                 centroids_1 = cmeans_computer.compute(np.vstack(truncated_dataset.get_series_list(0)),
                                                       self.fcm_concept_count // 2)
@@ -175,7 +175,7 @@ class CombinedOneVsOneClassifier(EnsembleClassifier):
 
         for class_idx_1 in range(dataset.n_classes):
             for class_idx_2 in range(class_idx_1 + 1, dataset.n_classes):
-                truncated_dataset = dataset.truncate((class_idx_1, class_idx_2))
+                truncated_dataset = dataset.select_classes((class_idx_1, class_idx_2))
                 cmeans_computer = CMeansComputer(self.config)
                 both_classes_series_list = truncated_dataset.get_series_list(0) + truncated_dataset.get_series_list(1)
                 centroids = cmeans_computer.compute(np.vstack(both_classes_series_list), self.fcm_concept_count)

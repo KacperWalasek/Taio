@@ -40,15 +40,25 @@ class ClassifierPipeline:
                 classifier.fit(data_train)
                 self.logger.info("Done building and fitting ensemble classifier")
 
-                self.logger.info("Evaluating classifier...")
-                train_acc = classifier.evaluate(data_train)
-                test_acc = classifier.evaluate(data_test)
-                self.logger.info(f"Done evaluating classifier, {train_acc=}, {test_acc=}")
+                for series_length_fraction in self.args.test_length_fractions:
+                    self.logger.info(f"Preparing evaluation datasets {series_length_fraction=}...")
+                    data_train_truncated = data_train.truncate(series_length_fraction,
+                                                               self.get_min_series_length(classifier_config),
+                                                               self.logger)
+                    data_test_truncated = data_test.truncate(series_length_fraction,
+                                                             self.get_min_series_length(classifier_config), self.logger)
+                    self.logger.info(f"Done preparing evaluation datasets")
 
-                self.logger.info("Saving the results")
-                results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
-                results_saver.save(self.args.method, classifier_config, train_acc, test_acc)
-                self.logger.info("Done saving the results")
+                    self.logger.info("Evaluating classifier...")
+                    train_acc = classifier.evaluate(data_train_truncated)
+                    test_acc = classifier.evaluate(data_test_truncated)
+                    self.logger.info(
+                        f"Done evaluating classifier, {series_length_fraction=}, {train_acc=}, {test_acc=}")
+
+                    self.logger.info("Saving the results")
+                    results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
+                    results_saver.save(self.args.method, classifier_config, series_length_fraction, train_acc, test_acc)
+                    self.logger.info(f"Done saving the results, {series_length_fraction=}")
 
                 self.logger.info(f"Finished pipeline, {rep=}, {config_name=}")
 
@@ -73,6 +83,10 @@ class ClassifierPipeline:
         return ResultsSaver(dir_name, dataset_name)
 
     @staticmethod
+    def get_min_series_length(config: configparser.ConfigParser) -> int:
+        return config.getint("BaseClassifier", "MovingWindowSize")
+
+    @staticmethod
     def _get_argparser() -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(prog="classifier_pipeline",
                                          description="Series classification pipeline")
@@ -84,8 +98,9 @@ class ClassifierPipeline:
         group.add_argument('--config', help="name of the config file")
         group.add_argument('--configs', nargs='+', default=None, help="name of the configs file")
         parser.add_argument('--method', default=None, choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
-                                                 'combined_symmetric_1_vs_1'], required=True)
-        parser.add_argument('--test-length-percentages', type=float, nargs="+", default=[1], help="TODO")
+                                                               'combined_symmetric_1_vs_1'], required=True)
+        parser.add_argument('--test-length-fractions', type=float, nargs="+", default=[1],
+                            help="series length fractions for early classification to verify")
         parser.add_argument('--results-dir', default="results",
                             help="a directory in which to put results")
         parser.add_argument(
