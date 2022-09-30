@@ -2,6 +2,7 @@
 #SBATCH --job-name=taio_{dataset}
 #SBATCH --cpus-per-task={cpus}
 #SBATCH --output=slurm-{dataset}-%j.out
+#SBATCH --time 5-0
 
 source ~/.pyenv/versions/py310/bin/activate
 
