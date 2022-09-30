@@ -49,7 +49,7 @@ class CMeansTransformer:
         self.centroids = centroids
 
     @property
-    def num_centroids(self):
+    def num_centroids(self) -> int:
         """
         @return: number of centroids
         """

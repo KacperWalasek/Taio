@@ -20,28 +20,37 @@ class ClassifierPipeline:
         self.logger = logging.getLogger("main")
         self.logger.info("ClassifierPipeline init")
 
-    def run(self):
+    def run(self) -> None:
         self.logger.info("Reading data...")
         data_reader = self.get_data_reader(self.args.data_dir, self.args.dataset)
         data_train = data_reader.read_preprocess_train()
         data_test = data_reader.read_preprocess_test()
         self.logger.info("Done reading data")
 
-        classifier_config = self.get_classifier_config(f"{self.args.config_dir}/{self.args.config}")
-        self.logger.info("Building and fitting ensemble classifier...")
-        classifier = self.build_classifier(self.args.method, classifier_config, self.logger)
-        classifier.fit(data_train)
-        self.logger.info("Done building and fitting ensemble classifier")
+        config_filenames: List[str] = self.args.configs if self.args.configs else [self.args.config]
 
-        self.logger.info("Evaluating classifier...")
-        train_acc = classifier.evaluate(data_train)
-        test_acc = classifier.evaluate(data_test)
-        self.logger.info(f"Done evaluating classifier, {train_acc=}, {test_acc=}")
+        for rep in range(self.args.num_reps):
+            for config_name in config_filenames:
+                self.logger.info(f"Starting pipeline, {rep=}, {config_name=}")
 
-        self.logger.info("Saving the results")
-        results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
-        results_saver.save(self.args.method, classifier_config, train_acc, test_acc)
-        self.logger.info("Done saving the results")
+                self.logger.info("Reading config...")
+                classifier_config = self.get_classifier_config(f"{self.args.config_dir}/{self.args.config}")
+                self.logger.info("Building and fitting ensemble classifier...")
+                classifier = self.build_classifier(self.args.method, classifier_config, self.logger)
+                classifier.fit(data_train)
+                self.logger.info("Done building and fitting ensemble classifier")
+
+                self.logger.info("Evaluating classifier...")
+                train_acc = classifier.evaluate(data_train)
+                test_acc = classifier.evaluate(data_test)
+                self.logger.info(f"Done evaluating classifier, {train_acc=}, {test_acc=}")
+
+                self.logger.info("Saving the results")
+                results_saver = self.get_results_saver(self.args.results_dir, self.args.dataset)
+                results_saver.save(self.args.method, classifier_config, train_acc, test_acc)
+                self.logger.info("Done saving the results")
+
+                self.logger.info(f"Finished pipeline, {rep=}, {config_name=}")
 
     @staticmethod
     def get_data_reader(dir_name: str, dataset_name: str) -> DataReader:
@@ -71,18 +80,21 @@ class ClassifierPipeline:
                             help="a root directory with series data")
         parser.add_argument('--config-dir', default="configs",
                             help="a root directory with run configs")
-        parser.add_argument('--config', required=True, help="name of the config file")
-        parser.add_argument('--method', choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('--config', help="name of the config file")
+        group.add_argument('--configs', nargs='+', default=None, help="name of the configs file")
+        parser.add_argument('--method', default=None, choices=['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
                                                  'combined_symmetric_1_vs_1'], required=True)
         parser.add_argument('--test-length-percentages', type=float, nargs="+", default=[1], help="TODO")
         parser.add_argument('--results-dir', default="results",
                             help="a directory in which to put results")
-        parser.add_argument("dataset", help="name of the dataset to test")
-
         parser.add_argument(
             '-v', '--verbose',
             help="be verbose",
             action="store_const", dest="loglevel", const=logging.INFO,
         )
+        parser.add_argument('--num-reps', type=int, default=5, help="a number of repetitions of each experiment")
+
+        parser.add_argument("dataset", help="name of the dataset to test")
 
         return parser

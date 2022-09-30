@@ -18,7 +18,7 @@ class EnsembleClassifier(ABC):
     @staticmethod
     def build_classifier(method: Literal['1_vs_all', 'asymmetric_1_vs_1', 'symmetric_1_vs_1',
                                          'combined_symmetric_1_vs_1'], config: configparser.ConfigParser,
-                         logger: Logger):
+                         logger: Logger) -> "EnsembleClassifier":
         classifiers = {
             '1_vs_all': OneVsAllClassifier,
             'asymmetric_1_vs_1': AsymmetricOneVsOneClassifier,
