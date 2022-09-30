@@ -9,7 +9,7 @@ for dataset in ["DiatomSizeReduction", "MiddlePhalanxTW", "MiddlePhalanxOutlineC
     formatted_template = template.format(dataset=dataset, cpus=10,
                                          methods="1_vs_all asymmetric_1_vs_1 symmetric_1_vs_1 "
                                                  "combined_symmetric_1_vs_1",
-                                         configs="1.ini 2.ini 3.ini 4.ini 5.ini 6.ini 7.ini 8.ini",
+                                         configs="0.ini 1.ini 2.ini 3.ini 4.ini 5.ini 6.ini 7.ini 8.ini 9.ini 10.ini",
                                          test_length_fractions="1 0.8 0.6 0.4")
     with open(f"bin/start_{dataset}.sh", "w", encoding='utf-8') as f:
         f.write(formatted_template)
