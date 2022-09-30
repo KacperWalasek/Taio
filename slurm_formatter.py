@@ -1,4 +1,4 @@
-with open("bin/start_template", "r", encoding='utf-8') as f:
+with open("start_template", "r", encoding='utf-8') as f:
     template = f.read()
 
 with open("queue_all.sh", "w", encoding="utf-8") as f:

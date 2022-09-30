@@ -1,8 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=taio_{name}
+#SBATCH --job-name=taio_{dataset}
 #SBATCH --cpus-per-task={cpus}
-#SBATCH --output=slurm-{name}-%j.out
+#SBATCH --output=slurm-{dataset}-%j.out
 
-source ~/.pyenv/versions/{envName}/bin/activate
+source ~/.pyenv/versions/py310/bin/activate
 
-python src/test_cases.py tests/{name}
+python -m -v data_converter {dataset}
+python -m classifier_pipeline --methods {methods} {dataset} --configs {configs} --test-length-fractions {test_length_fractions} -v
