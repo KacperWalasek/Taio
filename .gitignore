@@ -324,6 +324,6 @@ fabric.properties
 .vscode/
 svmFile.joblib
 start_*
-tests/*
 !start_template
 data/*
+queue_all.sh

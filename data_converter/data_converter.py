@@ -1,10 +1,9 @@
 import argparse
 import logging
+import os.path
 import shutil
-import tempfile
 from http.client import HTTPResponse
 from io import BytesIO, TextIOWrapper
-import os.path
 from typing import List, TextIO, Union
 from urllib.request import urlopen
 from zipfile import ZipFile
