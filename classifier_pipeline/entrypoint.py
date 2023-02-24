@@ -8,6 +8,12 @@ from classifier_pipeline.ensemble_classifier import EnsembleClassifier
 from classifier_pipeline.get_root import get_root
 from classifier_pipeline.results_saver import ResultsSaver
 
+import random
+import numpy as np
+
+random.seed(0)
+np.random.seed(0)
+
 
 class ClassifierPipeline:
     def __init__(self, args: List[str] = None):
@@ -25,8 +31,14 @@ class ClassifierPipeline:
         self.logger.info("Reading data...")
         data_reader = self.get_data_reader(self.args.data_dir, self.args.dataset)
         data_train = data_reader.read_preprocess_train()
-        data_test = data_reader.read_preprocess_test()
+        # data_test = data_reader.read_preprocess_test()
+        self.logger.info(f"Total time series in original train {data_train.n_series=}")
         self.logger.info("Done reading data")
+
+        self.logger.info("Splitting the dataset")
+        data_train, data_test = data_train.split(0.8)
+        self.logger.info(f"Total time series in split train {data_train.n_series=}")
+        self.logger.info(f"Total time series in split test {data_test.n_series=}")
 
         config_filenames: List[str] = self.args.configs if self.args.configs else [self.args.config]
         methods: List[Literal[

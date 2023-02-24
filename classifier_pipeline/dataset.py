@@ -13,6 +13,27 @@ T = TypeVar('T')
 class SeriesDataset:
     ALL_OTHER_LABEL = "ALL_OTHERS"
 
+    def split(self, max_train_ratio: float = 0.8) -> Tuple["SeriesDataset", "SeriesDataset"]:
+        """
+        Splits the dataset into two datasets. Ensures that the second dataset contains at least 1 sample per class.
+        The number of time series in every class of the second resulting dataset is equal. Finally, the first dataset
+        contains at most max_train_ratio of all time series.
+        @param max_train_ratio:
+        @return: a tuple of two datasets
+        """
+        num_from_every_class_in_2 = max(
+            ceil((1 - max_train_ratio - np.finfo(float).eps) * self.n_series / self.n_classes), 1)
+        dataset_1 = SeriesDataset()
+        dataset_2 = SeriesDataset()
+        for class_idx in range(self.n_classes):
+            series_list = self.get_series_list(class_idx)
+            indices_2 = set(np.random.choice(len(series_list), size=num_from_every_class_in_2, replace=False))
+            indices_1 = set(range(len(series_list))).difference(indices_2)
+            assert len(indices_1) + len(indices_2) == len(series_list)
+            dataset_1.add_class_item(self.get_label(class_idx), [series_list[x] for x in indices_1])
+            dataset_2.add_class_item(self.get_label(class_idx), [series_list[x] for x in indices_2])
+        return dataset_1, dataset_2
+
     def select_classes(self, indices_to_leave: Tuple[int, ...]) -> "SeriesDataset":
         """
         Creates a new dataset with only selected class indices
@@ -74,6 +95,13 @@ class SeriesDataset:
         @return: a number of all classes
         """
         return len(self._items)
+
+    @property
+    def n_series(self) -> int:
+        """
+        @return: a number of all series within all classes
+        """
+        return sum(len(self.get_series_list(x)) for x in range(self.n_classes))
 
     @property
     def labels(self) -> List[str]:
