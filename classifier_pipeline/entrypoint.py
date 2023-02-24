@@ -31,14 +31,16 @@ class ClassifierPipeline:
         self.logger.info("Reading data...")
         data_reader = self.get_data_reader(self.args.data_dir, self.args.dataset)
         data_train = data_reader.read_preprocess_train()
-        # data_test = data_reader.read_preprocess_test()
-        self.logger.info(f"Total time series in original train {data_train.n_series=}")
-        self.logger.info("Done reading data")
-
-        self.logger.info("Splitting the dataset")
-        data_train, data_test = data_train.split(0.8)
-        self.logger.info(f"Total time series in split train {data_train.n_series=}")
-        self.logger.info(f"Total time series in split test {data_test.n_series=}")
+        if self.args.train_valid:
+            self.logger.info("Done reading data")
+            self.logger.info("Splitting the dataset")
+            self.logger.info(f"Total time series in original train {data_train.n_series=}")
+            data_train, data_test = data_train.split(0.8)
+        else:
+            data_test = data_reader.read_preprocess_test()
+            self.logger.info("Done reading data")
+        self.logger.info(f"Total time series in train {data_train.n_series=}")
+        self.logger.info(f"Total time series in test {data_test.n_series=}")
 
         config_filenames: List[str] = self.args.configs if self.args.configs else [self.args.config]
         methods: List[Literal[
@@ -127,6 +129,7 @@ class ClassifierPipeline:
                             help="series length fractions for early classification to verify")
         parser.add_argument('--results-dir', default="results",
                             help="a directory in which to put results")
+        parser.add_argument('--train-valid', action="store_true")
         parser.add_argument(
             '-v', '--verbose',
             help="be verbose",
