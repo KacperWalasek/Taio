@@ -11,9 +11,6 @@ from classifier_pipeline.results_saver import ResultsSaver
 import random
 import numpy as np
 
-random.seed(0)
-np.random.seed(0)
-
 
 class ClassifierPipeline:
     def __init__(self, args: List[str] = None):
